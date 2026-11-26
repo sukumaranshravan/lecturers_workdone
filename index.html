@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecturer Duty Register</title>
+<style>
+:root{--bg:#f3f5f2;--card:#fff;--ink:#1d2a26;--mute:#66736e;--line:#d6ddd8;--accent:#1f6f5c;--accent-ink:#fff;--warn:#b3402a;--soft:#e4efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#141b18;--card:#1c2622;--ink:#e6eee9;--mute:#98a8a1;--line:#2d3b35;--accent:#58b99f;--accent-ink:#0f1a16;--warn:#ef8a74;--soft:#233a31}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{padding:18px 20px 0;max-width:1000px;margin:auto}
+h1{margin:0 0 2px;font-size:22px}
+header p{margin:0;color:var(--mute);font-size:13px}
+nav{display:flex;gap:4px;flex-wrap:wrap;max-width:1000px;margin:14px auto 0;padding:0 20px;border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;color:var(--mute);padding:9px 14px;font:inherit;cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:var(--ink);border-color:var(--accent);font-weight:600}
+main{max-width:1000px;margin:auto;padding:18px 20px 60px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:3px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:12px}
+button.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+button.del{background:none;border:0;color:var(--warn);cursor:pointer;font:inherit;padding:2px 6px}
+button.edit{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;padding:2px 6px}
+.inline{display:flex;gap:8px;margin-bottom:12px}
+.inline input{flex:1}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600;font-size:13px}
+.scroll{overflow-x:auto}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:14px;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin:0;cursor:pointer}
+.checks input{width:auto}
+.checks label:has(input:checked){background:var(--soft);border-color:var(--accent)}
+.perhead{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px}
+.per{border:1px solid var(--line);border-radius:8px;padding:2px 12px;background:var(--bg);margin-bottom:14px}
+.perrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0}
+.perrow+.perrow{border-top:1px solid var(--line)}
+.pl{width:104px;font-size:14px;color:var(--mute)}.pl b{color:var(--ink);margin-right:4px}
+.per .checks label{background:var(--card)}
+button.link{background:none;border:0;color:var(--accent);font:inherit;font-size:13px;cursor:pointer;padding:4px 6px}
+.perrow .link{margin-left:auto}
+button.link:hover{text-decoration:underline}
+.msg{color:var(--warn);font-size:13px;min-height:18px;margin:8px 0 0}
+.empty{color:var(--mute);padding:8px 0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.tag{display:inline-block;background:var(--soft);border-radius:4px;padding:1px 7px;margin:1px 2px 1px 0;font-size:13px}
+.tot{font-weight:600}
+.pay{display:flex;align-items:flex-end;gap:4px;font-size:11px;white-space:nowrap}
+.pay .dot{display:block;border-bottom:1px dotted #000;height:13px;min-width:30px}
+.hide{display:none!important}
+.paper{background:#fff;color:#000;padding:14px;min-width:820px}
+.bh{text-align:center;font-weight:700;font-size:16px;margin-bottom:6px}
+.meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:6px}
+.bill{border-collapse:collapse;width:100%;font-size:12px;color:#000}
+.bill th,.bill td{border:1px solid #333;padding:3px 6px;vertical-align:middle;color:#000;background:#fff}
+.bill th{font-size:11px;text-align:center;font-weight:700}
+.bill td{height:24px}.bill td.c{text-align:center}.bill .nw{white-space:nowrap}
+.bill .lbl{font-weight:700;font-size:11px}.bill .cert{font-size:10px;line-height:1.35}.bill .sig{height:56px;vertical-align:top;font-size:11px}
+@media print{@page{size:A4 landscape;margin:0}header,nav,.noprint,button{display:none!important}body{background:#fff;color:#000}main{padding:0;max-width:none}.card{border:0;padding:0;margin:0}section{display:none}section.on{display:block}.paper{padding:9mm;min-width:0}.bill tr{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lecturer Duty Register</h1>
+  <p>Record which lecturer took which theory class or lab, then pull a clean bill for each lecturer.</p>
+  <p id="syncStat" style="margin-top:4px"></p>
+</header>
+<nav id="nav">
+  <button data-t="log" class="on">Log duty</button>
+  <button data-t="report">Bill report</button>
+  <button data-t="labs">Subjects</button>
+  <button data-t="staff">Lecturers</button>
+  <button data-t="sync">Sync</button>
+  <button data-t="data">Backup</button>
+</nav>
+<main>
+
+<section id="log" class="on">
+  <div class="card">
+    <h2 id="logTitle">Log a lab session</h2>
+    <div class="row">
+      <div><label for="lDate">Date</label><input type="date" id="lDate"></div>
+      <div><label for="lType">Entry type</label><select id="lType"><option value="theory">Theory class</option><option value="lab">Lab session</option><option value="work">Other academic work (record only)</option><option value="remark">Remark / duty only</option></select></div>
+      <div class="forteach"><label for="lLab">Subject</label><select id="lLab"></select></div>
+      <div class="forbatch hide" style="grid-column:1/-1"><label>Batch</label><div class="checks" id="lBatch"><label><input type="radio" name="batch" value="ALL" checked>All students</label><label><input type="radio" name="batch" value="BATCH-1">Batch 1</label><label><input type="radio" name="batch" value="BATCH-2">Batch 2</label></div></div>
+      <div class="forteach"><label for="lHrs">Hours</label><input type="number" id="lHrs" min="0" step="0.5" value="3"></div>
+      <div class="fornon hide" style="grid-column:1/-1"><label for="lDesc">Description (shown in the bill)</label><input id="lDesc" placeholder="e.g. Course file work, Special class, Exam invigilation duty"></div>
+    </div>
+    <div class="perhead"><label style="margin:0" id="lPerLbl">Periods</label><span><button type="button" class="link" data-per="1,2,3,4,5,6">Full day</button><button type="button" class="link" data-per="">Clear</button></span></div>
+    <div class="per" id="lPer">
+      <div class="perrow"><span class="pl"><b>FN</b> Forenoon</span><div class="checks"><label><input type="checkbox" value="1">1</label><label><input type="checkbox" value="2">2</label><label><input type="checkbox" value="3">3</label></div><button type="button" class="link" data-per="1,2,3">Select all</button></div>
+      <div class="perrow"><span class="pl"><b>AN</b> Afternoon</span><div class="checks"><label><input type="checkbox" value="4">4</label><label><input type="checkbox" value="5">5</label><label><input type="checkbox" value="6">6</label></div><button type="button" class="link" data-per="4,5,6">Select all</button></div>
+    </div>
+    <label id="lStaffLbl">Lecturer(s) who took this (at least 1)</label>
+    <div class="checks" id="lStaff"></div>
+    <div class="forteach" style="margin-top:12px"><label for="lNote">Remarks (optional, shown in the bill)</label><input id="lNote"></div>
+    <p class="msg" id="logMsg"></p>
+    <div class="tools"><button class="btn" id="logSave">Save session</button><button class="btn ghost" id="logCancel" style="display:none">Cancel edit</button></div>
+  </div>
+  <div class="card">
+    <h2>Recent sessions</h2>
+    <div class="scroll" id="logList"></div>
+  </div>
+</section>
+
+<section id="report">
+  <div class="card noprint">
+    <h2>Bill report</h2>
+    <div class="row noprint">
+      <div><label for="rMonth">Month</label><input type="month" id="rMonth"></div>
+      <div><label for="rStaff">Lecturer name</label><select id="rStaff"></select></div>
+      <div><label for="rCollege">College name</label><input id="rCollege"></div>
+      <div><label for="rDept">Department</label><input id="rDept"></div>
+      <div><label for="rDesig">Designation (selected lecturer)</label><input id="rDesig"></div>
+      <div><label for="rSem">Semester start month</label><input id="rSem" type="month"></div>
+      <div><label for="rMax">Default max hours (if a lab has none)</label><input id="rMax" type="number" min="0" step="0.5"></div>
+    </div>
+    <div class="tools noprint"><button class="btn" onclick="window.print()">Print / save as PDF</button><button class="btn ghost" id="csvBtn">Download CSV</button></div>
+  </div>
+  <div class="card scroll" id="repOut"></div>
+</section>
+
+<section id="labs">
+  <div class="card">
+    <h2 id="labTitle">Add a subject</h2>
+    <div class="row">
+      <div><label for="bName">Subject name</label><input id="bName" placeholder="e.g. Theory of Structures"></div>
+      <div><label for="bCode">Class (as shown in the bill)</label><input id="bCode" placeholder="e.g. S3CE"></div>
+      <div><label for="bMax">Max teaching hours (optional)</label><input id="bMax" type="number" min="0" step="0.5" placeholder="e.g. 36"></div>
+    </div>
+    <div class="tools"><button class="btn" id="labSave">Save subject</button><button class="btn ghost" id="labCancel" style="display:none">Cancel</button></div>
+  </div>
+  <div class="card scroll" id="labList"></div>
+</section>
+
+<section id="staff">
+  <div class="card">
+    <h2>Lecturers</h2>
+    <div class="inline"><input id="sName" placeholder="Name"><button class="btn" id="sAdd">Add</button></div>
+    <div class="scroll" id="staffList"></div>
+  </div>
+</section>
+
+<section id="sync">
+  <div class="card">
+    <h2>Share data with all lecturers (GitHub)</h2>
+    <p style="color:var(--mute);margin-top:0">Data is stored as one file, lecturer-data.json, in a GitHub repository. Everyone who connects to the same repository sees the same records. Your token stays in this browser only.</p>
+    <div class="row">
+      <div><label for="gOwner">Repository owner</label><input id="gOwner" placeholder="GitHub username" autocomplete="off"></div>
+      <div><label for="gRepo">Repository name</label><input id="gRepo" placeholder="lab-data" autocomplete="off"></div>
+      <div><label for="gPath">File name</label><input id="gPath" placeholder="lecturer-data.json" autocomplete="off"></div>
+      <div><label for="gBranch">Branch (optional)</label><input id="gBranch" placeholder="default branch" autocomplete="off"></div>
+    </div>
+    <div style="margin-bottom:12px"><label for="gToken">Personal access token</label><input id="gToken" type="password" placeholder="github_pat_..." autocomplete="off"></div>
+    <p class="msg" id="syncMsg"></p>
+    <div class="tools"><button class="btn" id="gSave">Save and connect</button><button class="btn ghost" id="gNow">Sync now</button><button class="btn ghost" id="gOff">Disconnect</button></div>
+    <div id="linkBox" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+      <h2>Set up other lecturers with one link</h2>
+      <p style="color:var(--mute);margin-top:0;font-size:14px">Once you are connected, create a setup link and send it to your colleagues (for example on WhatsApp). When they open it, the page connects itself. They need no GitHub account. Treat the link like a password: anyone who has it can edit your lab records.</p>
+      <div class="tools"><button class="btn ghost" id="gLink">Create setup link</button></div>
+      <input id="gLinkOut" readonly style="margin-top:10px;display:none" aria-label="Setup link">
+      <p class="msg" id="linkMsg"></p>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="card">
+    <h2>Backup and restore</h2>
+    <p style="color:var(--mute);margin-top:0">Data is saved in this browser only. Download a backup regularly, and use it to move to another phone or computer.</p>
+    <div class="tools">
+      <button class="btn" id="exp">Download backup</button>
+      <button class="btn ghost" id="impBtn">Restore from backup</button>
+      <input type="file" id="impFile" accept=".json" style="display:none">
+    </div>
+    <p class="msg" id="dataMsg"></p>
+  </div>
+</section>
+</main>
+
+<script>
+const KEY="lecDutyRegister.v1";
+let db={staff:[],labs:[],logs:[]};
+try{const s=localStorage.getItem(KEY);if(s)db=JSON.parse(s)}catch(e){}
+db.del=db.del||{};
+["staff","labs","logs","set"].forEach(c=>db[c]=db[c]||[]);
+if(!db.staff.length&&!db.labs.length&&!db.logs.length){
+  db.staff=["Lecturer 1","Lecturer 2","Lecturer 3","Lecturer 4"].map((n,i)=>({id:"seed"+(i+1),name:n}));
+}
+let editLog=null,editLab=null;
+function uid(){return Math.random().toString(36).slice(2,9)}
+
+/* ---------- GitHub sync ---------- */
+const COLS=["staff","labs","logs","set"];
+const CFG_KEY=KEY+".sync";
+let cfg={owner:"",repo:"",branch:"",path:"lecturer-data.json",token:""};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem(CFG_KEY)||"{}"))}catch(e){}
+function snapshot(){const m={};COLS.forEach(c=>db[c].forEach(r=>{const{u,...x}=r;m[r.id]=JSON.stringify(x)}));return m}
+let last=null;try{last=JSON.parse(localStorage.getItem(KEY+".last")||"null")}catch(e){}
+if(!last)last=snapshot();
+let sha=null,busy=false,timer=null,again=false;
+const connected=()=>cfg.token&&cfg.owner&&cfg.repo;
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(KEY+".last",JSON.stringify(last))}catch(e){}}
+function stamp(){
+  const now=Date.now(),ids=new Set();
+  COLS.forEach(c=>db[c].forEach(r=>{ids.add(r.id);const{u,...x}=r;if(last[r.id]!==JSON.stringify(x))r.u=now}));
+  Object.keys(last).forEach(id=>{if(!ids.has(id))db.del[id]=now});
+  last=snapshot();
+}
+function save(){stamp();persist();clearTimeout(timer);timer=setTimeout(sync,800)}
+function merge(r){
+  const del={...db.del};Object.entries(r.del||{}).forEach(([k,v])=>{del[k]=Math.max(del[k]||0,v)});
+  const out={del};
+  COLS.forEach(c=>{const m=new Map();
+    [...(r[c]||[]),...db[c]].forEach(x=>{const o=m.get(x.id);if(!o||(x.u||0)>=(o.u||0))m.set(x.id,x)});
+    out[c]=[...m.values()].filter(x=>!(del[x.id]>(x.u||0)));
+  });
+  return out;
+}
+const apiBase=()=>`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`;
+const fileUrl=()=>apiBase()+"/contents/"+cfg.path.split("/").map(encodeURIComponent).join("/");
+const hdr=()=>({Authorization:"Bearer "+cfg.token,Accept:"application/vnd.github+json"});
+function b64enc(s){let t="";new TextEncoder().encode(s).forEach(x=>t+=String.fromCharCode(x));return btoa(t)}
+function b64dec(s){return new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)))}
+async function errText(res){
+  let m="";try{m=(await res.json()).message||""}catch(e){}
+  if(res.status===401)return "GitHub rejected the token. Check it and try again.";
+  if(res.status===403)return "Access denied. The token needs Contents: read and write on this repository. "+m;
+  if(res.status===404)return "Repository not found. Check the owner, repository name and that the token has access to it.";
+  return "GitHub error "+res.status+". "+m;
+}
+async function pull(){
+  const q=(cfg.branch?"ref="+encodeURIComponent(cfg.branch)+"&":"")+"t="+Date.now();
+  const res=await fetch(fileUrl()+"?"+q,{headers:hdr(),cache:"no-store"});
+  if(res.status===404){
+    const rr=await fetch(apiBase(),{headers:hdr(),cache:"no-store"});
+    if(!rr.ok)throw new Error(await errText(rr));
+    sha=null;return null;
+  }
+  if(!res.ok)throw new Error(await errText(res));
+  const j=await res.json();sha=j.sha;return JSON.parse(b64dec(j.content));
+}
+async function push(){
+  const body={message:"Update lab duty data",content:b64enc(JSON.stringify(db))};
+  if(sha)body.sha=sha;if(cfg.branch)body.branch=cfg.branch;
+  const res=await fetch(fileUrl(),{method:"PUT",headers:{...hdr(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(res.status===409||res.status===422)return false;
+  if(!res.ok)throw new Error(await errText(res));
+  sha=(await res.json()).content.sha;return true;
+}
+function setStatus(msg,bad){
+  const a=$("syncStat"),b=$("syncMsg");
+  a.textContent=msg;a.style.color=bad?"var(--warn)":"var(--mute)";
+  if(b){b.textContent=bad?msg:"";}
+}
+async function sync(){
+  if(!connected()){setStatus("Saved on this device only. Open the Sync tab to share with other lecturers.");return}
+  if(busy){again=true;return}
+  busy=true;setStatus("Syncing…");
+  try{
+    const before=JSON.stringify(db);let ok=false;
+    for(let i=0;i<4&&!ok;i++){
+      const r=await pull();
+      if(r)db=merge(r);
+      last=snapshot();
+      ok=await push();
+    }
+    if(!ok)throw new Error("Could not save because others are saving at the same time. Try again.");
+    persist();
+    if(JSON.stringify(db)!==before&&!editLog&&!editLab)render();
+    const d=new Date();setStatus("Synced with GitHub at "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"));
+  }catch(e){
+    setStatus((navigator.onLine?"":"You are offline. ")+"Sync failed: "+e.message+" Your changes are kept on this device.",true);
+  }finally{busy=false;if(again){again=false;sync()}}
+}
+function fillSync(){["Owner","Repo","Path","Branch","Token"].forEach(k=>$("g"+k).value=cfg[k.toLowerCase()]||"")}
+function b64u(s){return btoa(unescape(encodeURIComponent(s)))}
+function importSetup(){
+  const h=location.hash;
+  if(h==="#admin"){cfg.hideSync=false;try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}history.replaceState(null,"",location.pathname+location.search);return}
+  if(!h.startsWith("#setup="))return;
+  try{
+    const o=JSON.parse(decodeURIComponent(escape(atob(h.slice(7)))));
+    cfg={owner:o.o||"",repo:o.r||"",path:o.p||"lecturer-data.json",branch:o.b||"",token:o.t||"",hideSync:true};
+    localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  }catch(e){}
+  history.replaceState(null,"",location.pathname+location.search);
+}
+function startSync(){
+  importSetup();
+  fillSync();
+  if(cfg.hideSync)document.querySelectorAll('#nav button[data-t="sync"],#nav button[data-t="data"]').forEach(b=>b.style.display="none");
+  $("gLink").onclick=()=>{
+    const m=$("linkMsg"),out=$("gLinkOut");
+    if(!connected()){m.textContent="Connect to GitHub first, then create the link.";return}
+    if(location.protocol==="file:"){m.textContent="This page is opened from a file on your device, so a link to it would not work for others. Put the page on GitHub Pages first, open it from its web address, then create the link.";return}
+    const link=location.origin+location.pathname+"#setup="+b64u(JSON.stringify({o:cfg.owner,r:cfg.repo,p:cfg.path,b:cfg.branch,t:cfg.token}));
+    out.style.display="block";out.value=link;out.select();
+    let copied=false;try{navigator.clipboard.writeText(link);copied=true}catch(e){}
+    m.style.color="var(--accent)";m.textContent=copied?"Link copied. Send it to your colleagues.":"Copy the link above and send it to your colleagues.";
+  };
+  $("gSave").onclick=()=>{
+    cfg={owner:$("gOwner").value.trim(),repo:$("gRepo").value.trim(),path:$("gPath").value.trim()||"lecturer-data.json",branch:$("gBranch").value.trim(),token:$("gToken").value.trim()};
+    try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}
+    sync();
+  };
+  $("gNow").onclick=sync;
+  $("gOff").onclick=()=>{cfg.token="";try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}fillSync();sha=null;setStatus("Disconnected. Data is saved on this device only.")};
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
+  setInterval(()=>{if(!document.hidden)sync()},60000);
+  sync();
+}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nm=(arr,id)=>(arr.find(x=>x.id===id)||{name:"(deleted)"}).name;
+const opts=(arr,sel,blank)=>(blank?`<option value="">${blank}</option>`:"")+arr.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name)}</option>`).join("");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fmt=d=>{const[a,b,c]=d.split("-");return `${c}-${b}-${a}`};
+function perTxt(p){p=(p||[]).slice().sort((x,y)=>x-y);const f=p.filter(x=>x<=3),a=p.filter(x=>x>3);return [f.length?"FN "+f.join(","):"",a.length?"AN "+a.join(","):""].filter(Boolean).join(" · ")||"-"}
+function setPer(arr){document.querySelectorAll("#lPer input").forEach(i=>i.checked=arr.includes(+i.value))}
+
+document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#nav button,main section").forEach(e=>e.classList.remove("on"));
+  b.classList.add("on");$(b.dataset.t).classList.add("on");render();
+});
+
+/* simple name lists */
+function listHtml(arr,kind){
+  if(!arr.length)return `<div class="empty">Nothing added yet.</div>`;
+  return `<table><tbody>${arr.map(x=>`<tr><td>${esc(x.name)}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="rename('${kind}','${x.id}')">Rename</button><button class="del" onclick="remove('${kind}','${x.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`;
+}
+function addName(kind,inp){const v=$(inp).value.trim();if(!v)return;db[kind].push({id:uid(),name:v});$(inp).value="";save();render()}
+$("sAdd").onclick=()=>addName("staff","sName");
+$("sName").addEventListener("keydown",e=>{if(e.key==="Enter")$("sAdd").click()});
+function rename(kind,id){const o=db[kind].find(x=>x.id===id);const v=prompt("New name:",o.name);if(v&&v.trim()){o.name=v.trim();save();render()}}
+function remove(kind,id){
+  const used=kind==="staff"?db.logs.some(l=>l.staff.includes(id)):db.logs.some(l=>l.lab===id);
+  if(!confirm(used?"This name is used in saved records, which will then show '(deleted)'. Delete anyway?":"Delete this entry?"))return;
+  db[kind]=db[kind].filter(x=>x.id!==id);save();render();
+}
+
+/* labs */
+$("labSave").onclick=()=>{
+  const name=$("bName").value.trim();if(!name)return;
+  const rec={name,code:$("bCode").value.trim(),max:$("bMax").value};
+  if(editLab){Object.assign(db.labs.find(x=>x.id===editLab),rec)}else db.labs.push({id:uid(),...rec});
+  editLab=null;$("bName").value="";$("bCode").value="";$("bMax").value="";save();render();
+};
+$("labCancel").onclick=()=>{editLab=null;$("bName").value="";$("bCode").value="";$("bMax").value="";render()};
+function editLabFn(id){const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";window.scrollTo(0,0)}
+
+/* log */
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const dshort=d=>{const[y,m,dd]=d.split("-");return (+dd)+"-"+MONTHS[+m-1].slice(0,3)+"-"+y.slice(2)};
+const getSet=(id,d="")=>{const r=db.set.find(x=>x.id===id);return r?r.v:d};
+function setSet(id,v){const r=db.set.find(x=>x.id===id);if(r)r.v=v;else db.set.push({id,v});save()}
+const tType=l=>l.type||"lab";
+const isT=l=>{const t=tType(l);return t==="lab"||t==="theory"};
+function whatT(l){const t=tType(l);if(t==="lab"||t==="theory")return nm(db.labs,l.lab)+(t==="theory"?" (Theory)":" (Lab)");return (t==="work"?"Other work: ":"Remark: ")+(l.desc||"")}
+const what=l=>esc(whatT(l));
+const batchTxt=l=>!isT(l)?"-":(!l.batch||l.batch==="ALL"?"All students":"Batch "+l.batch.slice(-1));
+const nfmt=x=>String(+(+x).toFixed(2));
+const getBatch=()=>(document.querySelector("#lBatch input:checked")||{}).value||"ALL";
+function setBatch(b){const all=[...document.querySelectorAll("#lBatch input")];(all.find(i=>i.value===b)||all[0]).checked=true}
+function applyType(){
+  const t=$("lType").value,te=t==="lab"||t==="theory";
+  document.querySelectorAll(".forteach").forEach(e=>e.classList.toggle("hide",!te));
+  document.querySelectorAll(".forbatch").forEach(e=>e.classList.toggle("hide",t!=="lab"));
+  document.querySelectorAll(".fornon").forEach(e=>e.classList.toggle("hide",te));
+  $("lPerLbl").textContent=t==="remark"?"Periods (optional)":"Periods";
+}
+$("lType").onchange=applyType;
+$("logSave").onclick=()=>{
+  const t=$("lType").value,m=$("logMsg");
+  const staff=[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
+  const periods=[...document.querySelectorAll("#lPer input:checked")].map(i=>+i.value).sort((a,b)=>a-b);
+  const rec={type:t,date:$("lDate").value,periods,staff};
+  if(t==="lab"||t==="theory")Object.assign(rec,{lab:$("lLab").value,batch:t==="lab"?getBatch():"ALL",hrs:parseFloat($("lHrs").value)||0,note:$("lNote").value.trim(),desc:""});
+  else Object.assign(rec,{lab:"",batch:"",hrs:0,note:"",desc:$("lDesc").value.trim()});
+  if(!rec.date)return m.textContent="Pick a date.";
+  if(t==="lab"||t==="theory"){
+    if(!rec.lab)return m.textContent="Choose a subject. Add subjects in the Subjects tab first.";
+    if(!periods.length)return m.textContent="Select at least one period (FN 1-3 or AN 4-6).";
+  }else{
+    if(!rec.desc)return m.textContent="Describe the work or duty.";
+    if(t==="work"&&!periods.length)return m.textContent="Select the periods for this work.";
+  }
+  if(!staff.length)return m.textContent="Select the lecturer(s).";
+  const clash=db.logs.find(l=>l.id!==editLog&&l.date===rec.date&&(l.periods||[]).some(p=>periods.includes(p))&&l.staff.some(x=>staff.includes(x)));
+  if(clash){const who=clash.staff.filter(x=>staff.includes(x)).map(x=>nm(db.staff,x)).join(", ");return m.textContent=who+" already logged for "+whatT(clash)+(tType(clash)==="lab"?" - "+batchTxt(clash):"")+" ("+perTxt(clash.periods)+") on this date. Check the periods.";}
+  if(editLog){Object.assign(db.logs.find(x=>x.id===editLog),rec)}else db.logs.push({id:uid(),...rec});
+  m.textContent="";editLog=null;$("lNote").value="";$("lDesc").value="";setPer([]);save();render();
+};
+$("logCancel").onclick=()=>{editLog=null;render()};
+function editLogFn(id){editLog=id;render();window.scrollTo(0,0)}
+function delLog(id){if(confirm("Delete this entry?")){db.logs=db.logs.filter(x=>x.id!==id);save();render()}}
+
+function renderLog(){
+  const e=editLog&&db.logs.find(x=>x.id===editLog);
+  $("logTitle").textContent=e?"Edit entry":"Log an entry";
+  $("logCancel").style.display=e?"":"none";
+  $("lDate").value=e?e.date:($("lDate").value||today());
+  $("lLab").innerHTML=opts(db.labs,e?e.lab:$("lLab").value,"Choose subject");
+  if(e){$("lType").value=tType(e);setBatch(e.batch);$("lDesc").value=e.desc||"";$("lHrs").value=isT(e)?e.hrs:3;$("lNote").value=e.note||"";setPer(e.periods||[])}
+  applyType();
+  const sel=e?e.staff:[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
+  $("lStaff").innerHTML=db.staff.length?db.staff.map(s=>`<label><input type="checkbox" value="${s.id}"${sel.includes(s.id)?" checked":""}>${esc(s.name)}</label>`).join(""):`<span class="empty">Add lecturers in the Lecturers tab first.</span>`;
+  const rows=[...db.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  $("logList").innerHTML=rows.length?`<table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer(s)</th><th>Hrs</th><th></th></tr></thead><tbody>${rows.map(l=>{const lab=isT(l);return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${l.staff.map(s=>`<span class="tag">${esc(nm(db.staff,s))}</span>`).join("")}</td><td>${lab?l.hrs:"-"}</td><td style="white-space:nowrap"><button class="edit" onclick="editLogFn('${l.id}')">Edit</button><button class="del" onclick="delLog('${l.id}')">Delete</button></td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No entries logged yet.</div>`;
+}
+
+/* report */
+function reportRows(){
+  const m=$("rMonth").value,s=$("rStaff").value==="__all"?"":$("rStaff").value;
+  return db.logs.filter(l=>(!m||l.date.startsWith(m))&&(!s||l.staff.includes(s))).sort((a,b)=>a.date.localeCompare(b.date)||Math.min(...(a.periods||[9]))-Math.min(...(b.periods||[9])));
+}
+function sheet(rows,s,mo){
+  if(!rows.length)return `<div class="empty">No entries for this lecturer in this month.</div>`;
+  const lab=rows.filter(l=>isT(l));
+  const sem0=getSet("sem");
+  const colRows=(sem0&&mo&&mo>=sem0)?db.logs.filter(l=>l.staff.includes(s)&&isT(l)&&l.date.slice(0,7)<=mo&&l.date>=sem0+"-01").sort((a,b)=>a.date.localeCompare(b.date)):lab;
+  const groups=[];
+  colRows.forEach(l=>{let g=groups.find(x=>x.lab===l.lab);if(!g){g={lab:l.lab,cols:[]};groups.push(g)}const b=l.batch||"ALL";if(!g.cols.some(c=>c.b===b))g.cols.push({k:l.lab+"|"+b,b})});
+  groups.forEach(g=>g.cols.sort((a,b)=>a.b.localeCompare(b.b)));
+  if(!groups.length)groups.push({lab:null,cols:[{k:"",b:""}]});
+  const flat=groups.flatMap(g=>g.cols),n=flat.length;
+  const L=g=>db.labs.find(x=>x.id===g.lab)||{name:"",code:""};
+  const per=a=>[...new Set(a)].sort((x,y)=>x-y).join(",");
+  const dates=[...new Set(rows.map(l=>l.date))].sort();
+  const body=dates.map((d,i)=>{
+    const day=rows.filter(l=>l.date===d);
+    const cells=flat.map(c=>`<td class="c">${per(day.filter(l=>isT(l)&&(l.lab+"|"+(l.batch||"ALL"))===c.k).flatMap(l=>l.periods||[]))}</td>`).join("");
+    const works=day.filter(l=>tType(l)==="work");
+    const rem=[...day.filter(l=>tType(l)==="remark").map(l=>l.desc||""),...day.filter(l=>isT(l)&&l.note).map(l=>l.note)].map(esc).join("; ");
+    return `<tr><td class="c">${i+1}</td><td class="c nw">${dshort(d)}</td>${cells}<td>${works.map(l=>esc(l.desc||"")).join("<br>")}</td><td class="c">${works.map(l=>per(l.periods||[])).join("<br>")}</td><td>${rem}</td></tr>`;
+  }).join("");
+  const mx=getSet("max"),sem=getSet("sem"),start=mo?mo+"-01":"";
+  const curOf=g=>lab.filter(l=>l.lab===g.lab).reduce((a,l)=>a+(l.hrs||0),0);
+  const prevOf=g=>mo?db.logs.filter(l=>l.staff.includes(s)&&isT(l)&&l.lab===g.lab&&l.date<start&&(!sem||l.date>=sem+"-01")).reduce((a,l)=>a+(l.hrs||0),0):0;
+  const maxOf=g=>{const v=L(g).max;return (v!==undefined&&v!=="")?nfmt(v):(mx===""?"":nfmt(mx))};
+  const month=mo?MONTHS[+mo.slice(5)-1]+" "+mo.slice(0,4):"All months";
+  const foot=(t,fn)=>`<tr><td colspan="2" class="lbl">${t}</td>${groups.map(g=>`<td colspan="${g.cols.length}" class="c">${g.lab===null?"":fn(g)}</td>`).join("")}<td colspan="3"></td></tr>`;
+  const cert="As per circular L1/23290/2017/DTE dt 22/06/2017 certified that the above guest faculty has engaged classroom works as well as other academic works on the days mentioned above, verified as per class log and subject logs. Also certified that particulars furnished by the faculty are correct and hence claim is justified.";
+  return `<div class="paper">
+<div class="bh">${esc(getSet("college")||"COLLEGE NAME")}</div>
+<div class="meta"><span>Statement of classes and academic work conducted by</span><span>Name: <b>${esc(nm(db.staff,s))}</b></span><span>Designation: <b>${esc(getSet("desig-"+s))}</b></span><span>Department: <b>${esc(getSet("dept","Civil Engineering"))}</b></span><span>During the month of <b>${month}</b></span></div>
+<table class="bill"><thead>
+<tr><th rowspan="4">Sl.No.</th><th>Classes</th>${groups.map(g=>`<th colspan="${g.cols.length}">${esc(L(g).code)}</th>`).join("")}<th rowspan="4" style="width:22%">OTHER ACADEMIC WORKS<br>(Specify the work)</th><th rowspan="4" style="width:7%">PERIODS</th><th rowspan="4" style="width:22%">REMARKS</th></tr>
+<tr><th>SUBJECTS</th>${groups.map(g=>`<th colspan="${g.cols.length}">${esc(L(g).name)}</th>`).join("")}</tr>
+<tr><th></th>${flat.map(c=>`<th>${esc(c.b)}</th>`).join("")}</tr>
+<tr><th>DATE</th>${flat.map(()=>`<th>PERIODS</th>`).join("")}</tr>
+</thead><tbody>${body}
+${foot("Completed teaching hours in the previous month/s",g=>nfmt(prevOf(g)))}
+${foot("Completed teaching hours in current month",g=>nfmt(curOf(g)))}
+${foot("Cumulative Hours",g=>nfmt(prevOf(g)+curOf(g)))}
+${foot("Maximum Teaching Hours",maxOf)}
+</tbody></table>
+<table class="bill" style="margin-top:-1px"><tr><td colspan="2" class="c lbl" style="height:34px">For HoD</td><td></td></tr>
+<tr><td class="c lbl" style="width:36%">No. of days worked:</td><td class="c lbl" style="width:12%">${dates.length}</td><td class="cert">${cert}</td></tr>
+<tr><td colspan="2" class="sig">Signature of Employee:</td><td class="sig">Signature of HoD with name and designation:</td></tr>
+<tr><td colspan="3" style="height:40px;vertical-align:bottom"><div class="pay"><span>Passed for payment Rs:</span><i class="dot" style="flex:2"></i><span>( Rupees</span><i class="dot" style="flex:5"></i><span>) at the rate of Rs:</span><i class="dot" style="flex:2"></i><span>as daily wage</span></div></td></tr></table>
+</div>`;
+}
+function listView(rows){
+  if(!rows.length)return `<div class="empty">No entries for this selection.</div>`;
+  const hr=r=>r.reduce((a,l)=>a+(isT(l)?(l.hrs||0):0),0);
+  const sum=`<h2>Summary by lecturer</h2><table><thead><tr><th>Lecturer</th><th>Days</th><th>Teaching periods</th><th>Teaching hours</th></tr></thead><tbody>${db.staff.map(p=>{const r=rows.filter(l=>l.staff.includes(p.id));return `<tr><td>${esc(p.name)}</td><td>${new Set(r.map(l=>l.date)).size}</td><td>${r.filter(l=>isT(l)).reduce((a,l)=>a+(l.periods||[]).length,0)}</td><td>${nfmt(hr(r))}</td></tr>`}).join("")}</tbody></table><p class="noprint" style="color:var(--mute);font-size:13px">Choose a lecturer above to see the bill sheet.</p>`;
+  return sum+`<h2>All entries</h2><table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer(s)</th><th>Hrs</th></tr></thead><tbody>${rows.map(l=>{const lab=isT(l);return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${l.staff.map(x=>esc(nm(db.staff,x))).join(", ")}</td><td>${lab?l.hrs:"-"}</td></tr>`}).join("")}</tbody></table>`;
+}
+function renderReport(){
+  if(!$("rMonth").value)$("rMonth").value=today().slice(0,7);
+  let cur=$("rStaff").value;
+  if(!cur){try{cur=localStorage.getItem(KEY+".me")||""}catch(e){}}
+  $("rStaff").innerHTML=opts(db.staff,cur,"Select your name")+`<option value="__all"${cur==="__all"?" selected":""}>All lecturers (summary)</option>`;
+  const s=$("rStaff").value,mo=$("rMonth").value,one=s&&s!=="__all";
+  const fill=(id,v)=>{if(document.activeElement!==$(id))$(id).value=v};
+  fill("rCollege",getSet("college"));fill("rDept",getSet("dept","Civil Engineering"));fill("rMax",getSet("max"));
+  fill("rDesig",one?getSet("desig-"+s):"");fill("rSem",getSet("sem"));
+  $("rDesig").disabled=!one;
+  const rows=reportRows();
+  $("repOut").innerHTML=one?sheet(rows,s,mo):s==="__all"?listView(rows):`<div class="empty">Choose your name above to generate your bill for the selected month.</div>`;
+}
+$("rMonth").onchange=renderReport;$("rStaff").onchange=()=>{try{localStorage.setItem(KEY+".me",$("rStaff").value)}catch(e){}renderReport()};
+$("rCollege").onchange=()=>{setSet("college",$("rCollege").value.trim());renderReport()};
+$("rDept").onchange=()=>{setSet("dept",$("rDept").value.trim());renderReport()};
+$("rMax").onchange=()=>{setSet("max",$("rMax").value);renderReport()};
+$("rDesig").onchange=()=>{const s=$("rStaff").value;if(s&&s!=="__all")setSet("desig-"+s,$("rDesig").value.trim());renderReport()};
+$("rSem").onchange=()=>{setSet("sem",$("rSem").value);renderReport()};
+$("csvBtn").onclick=()=>{
+  const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const lines=[["Date","Periods","Entry","Batch","Lecturer(s)","Hours","Remarks"].join(",")].concat(reportRows().map(l=>{const lab=isT(l);return [fmt(l.date),perTxt(l.periods),whatT(l),batchTxt(l),l.staff.map(x=>nm(db.staff,x)).join("; "),lab?l.hrs:"",lab?(l.note||""):""].map(q).join(",")}));
+  dl("lab-duty-"+($("rMonth").value||"all")+".csv","text/csv","\ufeff"+lines.join("\n"));
+};
+
+/* backup */
+function dl(name,type,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+$("exp").onclick=()=>dl("lab-duty-backup-"+today()+".json","application/json",JSON.stringify(db,null,2));
+$("impBtn").onclick=()=>$("impFile").click();
+$("impFile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.staff||!d.labs||!d.logs)throw 0;
+    if(!confirm("This replaces all current data. Continue?"))return;db=d;db.del=db.del||{};COLS.forEach(c=>db[c]=db[c]||[]);save();render();$("dataMsg").style.color="var(--accent)";$("dataMsg").textContent="Backup restored."}
+    catch{$("dataMsg").style.color="var(--warn)";$("dataMsg").textContent="That file is not a valid backup."}};
+  r.readAsText(f);e.target.value="";
+};
+
+function render(){
+  $("staffList").innerHTML=listHtml(db.staff,"staff");
+  $("labTitle").textContent=editLab?"Edit subject":"Add a subject";
+  $("labCancel").style.display=editLab?"":"none";
+  $("labList").innerHTML=db.labs.length?`<table><thead><tr><th>Subject</th><th>Class</th><th>Max hrs</th><th></th></tr></thead><tbody>${db.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.code||"")}</td><td>${esc(l.max||"")}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="editLabFn('${l.id}')">Edit</button><button class="del" onclick="remove('labs','${l.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No subjects yet. Add them above.</div>`;
+  renderLog();renderReport();
+}
+document.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>setPer(b.dataset.per?b.dataset.per.split(",").map(Number):[]));
+render();
+startSync();
+</script>
+</body>
+</html>
