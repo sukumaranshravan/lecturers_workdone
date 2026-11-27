@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lecturer Duty Register</title>
+<title>Lab Duty Register</title>
 <style>
 :root{--bg:#f3f5f2;--card:#fff;--ink:#1d2a26;--mute:#66736e;--line:#d6ddd8;--accent:#1f6f5c;--accent-ink:#fff;--warn:#b3402a;--soft:#e4efe9}
 @media (prefers-color-scheme:dark){:root{--bg:#141b18;--card:#1c2622;--ink:#e6eee9;--mute:#98a8a1;--line:#2d3b35;--accent:#58b99f;--accent-ink:#0f1a16;--warn:#ef8a74;--soft:#233a31}}
@@ -67,15 +67,16 @@ button.link:hover{text-decoration:underline}
 </head>
 <body>
 <header>
-  <h1>Lecturer Duty Register</h1>
-  <p>Record which lecturer took which theory class or lab, then pull a clean bill for each lecturer.</p>
+  <h1>Lab Duty Register</h1>
+  <p>Record who worked which lab, with which lecturer, then pull a clean list for your bill.</p>
   <p id="syncStat" style="margin-top:4px"></p>
 </header>
 <nav id="nav">
   <button data-t="log" class="on">Log duty</button>
   <button data-t="report">Bill report</button>
-  <button data-t="labs">Subjects</button>
-  <button data-t="staff">Lecturers</button>
+  <button data-t="labs">Labs</button>
+  <button data-t="staff">Lab staff</button>
+  <button data-t="lect">Lecturers</button>
   <button data-t="sync">Sync</button>
   <button data-t="data">Backup</button>
 </nav>
@@ -86,11 +87,10 @@ button.link:hover{text-decoration:underline}
     <h2 id="logTitle">Log a lab session</h2>
     <div class="row">
       <div><label for="lDate">Date</label><input type="date" id="lDate"></div>
-      <div><label for="lType">Entry type</label><select id="lType"><option value="theory">Theory class</option><option value="lab">Lab session</option><option value="work">Other academic work (record only)</option><option value="remark">Remark / duty only</option></select></div>
-      <div><label for="lWho">Lecturer</label><select id="lWho"></select></div>
-      <div class="forteach"><label for="lLab" id="lSubLbl">Subject</label><select id="lLab"></select></div>
-      <div id="lAllBox" class="hide" style="grid-column:1/-1;font-size:13px;color:var(--mute)">Showing subjects assigned to this lecturer. <button type="button" class="link" id="lAll">Show all subjects</button></div>
-      <div class="forbatch hide" style="grid-column:1/-1"><label>Batch</label><div class="checks" id="lBatch"><label><input type="radio" name="batch" value="ALL" checked>All students</label><label><input type="radio" name="batch" value="BATCH-1">Batch 1</label><label><input type="radio" name="batch" value="BATCH-2">Batch 2</label></div></div>
+      <div><label for="lType">Entry type</label><select id="lType"><option value="lab">Lab session</option><option value="work">Other academic work (record only)</option><option value="remark">Remark / duty only</option></select></div>
+      <div class="forlab"><label for="lLab">Lab / subject</label><select id="lLab"></select></div>
+      <div class="forlab"><label for="lLect">Lecturer</label><select id="lLect"></select></div>
+      <div class="forlab" style="grid-column:1/-1"><label>Batch</label><div class="checks" id="lBatch"><label><input type="radio" name="batch" value="ALL" checked>All students</label><label><input type="radio" name="batch" value="BATCH-1">Batch 1</label><label><input type="radio" name="batch" value="BATCH-2">Batch 2</label></div></div>
       <div class="fornon hide" style="grid-column:1/-1"><label for="lDesc">Description (shown in the bill)</label><input id="lDesc" placeholder="e.g. Course file work, Special class, Exam invigilation duty"></div>
     </div>
     <div class="perhead"><label style="margin:0" id="lPerLbl">Periods</label><span><button type="button" class="link" data-per="1,2,3,4,5,6">Full day</button><button type="button" class="link" data-per="">Clear</button></span></div>
@@ -98,7 +98,9 @@ button.link:hover{text-decoration:underline}
       <div class="perrow"><span class="pl"><b>FN</b> Forenoon</span><div class="checks"><label><input type="checkbox" value="1">1</label><label><input type="checkbox" value="2">2</label><label><input type="checkbox" value="3">3</label></div><button type="button" class="link" data-per="1,2,3">Select all</button></div>
       <div class="perrow"><span class="pl"><b>AN</b> Afternoon</span><div class="checks"><label><input type="checkbox" value="4">4</label><label><input type="checkbox" value="5">5</label><label><input type="checkbox" value="6">6</label></div><button type="button" class="link" data-per="4,5,6">Select all</button></div>
     </div>
-    <div class="forteach" style="margin-top:12px"><label for="lNote">Remarks (optional, shown in the bill)</label><input id="lNote"></div>
+    <label id="lStaffLbl">Lab staff present (at least 2)</label>
+    <div class="checks" id="lStaff"></div>
+    <div class="forlab" style="margin-top:12px"><label for="lNote">Remarks (optional, shown in the bill)</label><input id="lNote"></div>
     <p class="msg" id="logMsg"></p>
     <div class="tools"><button class="btn" id="logSave">Save session</button><button class="btn ghost" id="logCancel" style="display:none">Cancel edit</button></div>
   </div>
@@ -113,10 +115,10 @@ button.link:hover{text-decoration:underline}
     <h2>Bill report</h2>
     <div class="row noprint">
       <div><label for="rMonth">Month</label><input type="month" id="rMonth"></div>
-      <div><label for="rStaff">Lecturer name</label><select id="rStaff"></select></div>
+      <div><label for="rStaff">Lab staff name</label><select id="rStaff"></select></div>
       <div><label for="rCollege">College name</label><input id="rCollege"></div>
       <div><label for="rDept">Department</label><input id="rDept"></div>
-      <div><label for="rDesig">Designation (selected lecturer)</label><input id="rDesig"></div>
+      <div><label for="rDesig">Designation (selected staff)</label><input id="rDesig"></div>
       <div><label for="rSem">Semester start month</label><input id="rSem" type="month"></div>
       <div><label for="rMax">Default max hours (if a lab has none)</label><input id="rMax" type="number" min="0" step="0.5"></div>
     </div>
@@ -127,42 +129,49 @@ button.link:hover{text-decoration:underline}
 
 <section id="labs">
   <div class="card">
-    <h2 id="labTitle">Add a subject</h2>
+    <h2 id="labTitle">Add a lab</h2>
     <div class="row">
-      <div><label for="bName">Subject name</label><input id="bName" placeholder="e.g. Theory of Structures"></div>
+      <div><label for="bName">Lab / subject name</label><input id="bName" placeholder="e.g. Physics Lab I"></div>
+      <div><label for="bLect">Usual lecturer</label><select id="bLect"></select></div>
       <div><label for="bCode">Class (as shown in the bill)</label><input id="bCode" placeholder="e.g. S3CE"></div>
       <div><label for="bMax">Max teaching hours (optional)</label><input id="bMax" type="number" min="0" step="0.5" placeholder="e.g. 36"></div>
-      <div><label>Subject type</label><div class="checks" id="bKind"><label><input type="radio" name="kind" value="theory" checked>Theory</label><label><input type="radio" name="kind" value="lab">Lab</label></div></div>
-      <div style="grid-column:1/-1"><label>Lecturers assigned to this subject (one or more)</label><div class="checks" id="bLects"></div></div>
     </div>
-    <div class="tools"><button class="btn" id="labSave">Save subject</button><button class="btn ghost" id="labCancel" style="display:none">Cancel</button></div>
+    <div class="tools"><button class="btn" id="labSave">Save lab</button><button class="btn ghost" id="labCancel" style="display:none">Cancel</button></div>
   </div>
   <div class="card scroll" id="labList"></div>
 </section>
 
 <section id="staff">
   <div class="card">
-    <h2>Lecturers</h2>
+    <h2>Lab staff</h2>
     <div class="inline"><input id="sName" placeholder="Name"><button class="btn" id="sAdd">Add</button></div>
     <div class="scroll" id="staffList"></div>
   </div>
 </section>
 
+<section id="lect">
+  <div class="card">
+    <h2>Lecturers</h2>
+    <div class="inline"><input id="cName" placeholder="Name"><button class="btn" id="cAdd">Add</button></div>
+    <div class="scroll" id="lectList"></div>
+  </div>
+</section>
+
 <section id="sync">
   <div class="card">
-    <h2>Share data with all lecturers (GitHub)</h2>
-    <p style="color:var(--mute);margin-top:0">Data is stored as one file, lecturer-data.json, in a GitHub repository. Everyone who connects to the same repository sees the same records. Your token stays in this browser only.</p>
+    <h2>Share data with all lab staff (GitHub)</h2>
+    <p style="color:var(--mute);margin-top:0">Data is stored as one file, data.json, in a GitHub repository. Everyone who connects to the same repository sees the same records. Your token stays in this browser only.</p>
     <div class="row">
       <div><label for="gOwner">Repository owner</label><input id="gOwner" placeholder="GitHub username" autocomplete="off"></div>
       <div><label for="gRepo">Repository name</label><input id="gRepo" placeholder="lab-data" autocomplete="off"></div>
-      <div><label for="gPath">File name</label><input id="gPath" placeholder="lecturer-data.json" autocomplete="off"></div>
+      <div><label for="gPath">File name</label><input id="gPath" placeholder="data.json" autocomplete="off"></div>
       <div><label for="gBranch">Branch (optional)</label><input id="gBranch" placeholder="default branch" autocomplete="off"></div>
     </div>
     <div style="margin-bottom:12px"><label for="gToken">Personal access token</label><input id="gToken" type="password" placeholder="github_pat_..." autocomplete="off"></div>
     <p class="msg" id="syncMsg"></p>
     <div class="tools"><button class="btn" id="gSave">Save and connect</button><button class="btn ghost" id="gNow">Sync now</button><button class="btn ghost" id="gOff">Disconnect</button></div>
     <div id="linkBox" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
-      <h2>Set up other lecturers with one link</h2>
+      <h2>Set up other staff with one link</h2>
       <p style="color:var(--mute);margin-top:0;font-size:14px">Once you are connected, create a setup link and send it to your colleagues (for example on WhatsApp). When they open it, the page connects itself. They need no GitHub account. Treat the link like a password: anyone who has it can edit your lab records.</p>
       <div class="tools"><button class="btn ghost" id="gLink">Create setup link</button></div>
       <input id="gLinkOut" readonly style="margin-top:10px;display:none" aria-label="Setup link">
@@ -186,21 +195,21 @@ button.link:hover{text-decoration:underline}
 </main>
 
 <script>
-const KEY="lecDutyRegister.v1";
-let db={staff:[],labs:[],logs:[]};
+const KEY="labDutyRegister.v1";
+let db={staff:[],lect:[],labs:[],logs:[]};
 try{const s=localStorage.getItem(KEY);if(s)db=JSON.parse(s)}catch(e){}
 db.del=db.del||{};
-["staff","labs","logs","set"].forEach(c=>db[c]=db[c]||[]);
-if(!db.staff.length&&!db.labs.length&&!db.logs.length){
-  db.staff=["Lecturer 1","Lecturer 2","Lecturer 3","Lecturer 4"].map((n,i)=>({id:"seed"+(i+1),name:n}));
+["staff","lect","labs","logs","set"].forEach(c=>db[c]=db[c]||[]);
+if(!db.staff.length&&!db.lect.length&&!db.labs.length&&!db.logs.length){
+  db.staff=["Staff 1","Staff 2","Staff 3","Staff 4"].map((n,i)=>({id:"seed"+(i+1),name:n}));
 }
 let editLog=null,editLab=null;
 function uid(){return Math.random().toString(36).slice(2,9)}
 
 /* ---------- GitHub sync ---------- */
-const COLS=["staff","labs","logs","set"];
+const COLS=["staff","lect","labs","logs","set"];
 const CFG_KEY=KEY+".sync";
-let cfg={owner:"",repo:"",branch:"",path:"lecturer-data.json",token:""};
+let cfg={owner:"",repo:"",branch:"",path:"data.json",token:""};
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(CFG_KEY)||"{}"))}catch(e){}
 function snapshot(){const m={};COLS.forEach(c=>db[c].forEach(r=>{const{u,...x}=r;m[r.id]=JSON.stringify(x)}));return m}
 let last=null;try{last=JSON.parse(localStorage.getItem(KEY+".last")||"null")}catch(e){}
@@ -261,7 +270,7 @@ function setStatus(msg,bad){
   if(b){b.textContent=bad?msg:"";}
 }
 async function sync(){
-  if(!connected()){setStatus("Saved on this device only. Open the Sync tab to share with other lecturers.");return}
+  if(!connected()){setStatus("Saved on this device only. Open the Sync tab to share with other staff.");return}
   if(busy){again=true;return}
   busy=true;setStatus("Syncing…");
   try{
@@ -288,7 +297,7 @@ function importSetup(){
   if(!h.startsWith("#setup="))return;
   try{
     const o=JSON.parse(decodeURIComponent(escape(atob(h.slice(7)))));
-    cfg={owner:o.o||"",repo:o.r||"",path:o.p||"lecturer-data.json",branch:o.b||"",token:o.t||"",hideSync:true};
+    cfg={owner:o.o||"",repo:o.r||"",path:o.p||"data.json",branch:o.b||"",token:o.t||"",hideSync:true};
     localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
   }catch(e){}
   history.replaceState(null,"",location.pathname+location.search);
@@ -307,7 +316,7 @@ function startSync(){
     m.style.color="var(--accent)";m.textContent=copied?"Link copied. Send it to your colleagues.":"Copy the link above and send it to your colleagues.";
   };
   $("gSave").onclick=()=>{
-    cfg={owner:$("gOwner").value.trim(),repo:$("gRepo").value.trim(),path:$("gPath").value.trim()||"lecturer-data.json",branch:$("gBranch").value.trim(),token:$("gToken").value.trim()};
+    cfg={owner:$("gOwner").value.trim(),repo:$("gRepo").value.trim(),path:$("gPath").value.trim()||"data.json",branch:$("gBranch").value.trim(),token:$("gToken").value.trim()};
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}
     sync();
   };
@@ -338,10 +347,11 @@ function listHtml(arr,kind){
 }
 function addName(kind,inp){const v=$(inp).value.trim();if(!v)return;db[kind].push({id:uid(),name:v});$(inp).value="";save();render()}
 $("sAdd").onclick=()=>addName("staff","sName");
-$("sName").addEventListener("keydown",e=>{if(e.key==="Enter")$("sAdd").click()});
+$("cAdd").onclick=()=>addName("lect","cName");
+["sName","cName"].forEach(i=>$(i).addEventListener("keydown",e=>{if(e.key==="Enter")$(i==="sName"?"sAdd":"cAdd").click()}));
 function rename(kind,id){const o=db[kind].find(x=>x.id===id);const v=prompt("New name:",o.name);if(v&&v.trim()){o.name=v.trim();save();render()}}
 function remove(kind,id){
-  const used=kind==="staff"?db.logs.some(l=>l.staff.includes(id))||db.labs.some(l=>(l.lects||[]).includes(id)):db.logs.some(l=>l.lab===id);
+  const used=kind==="staff"?db.logs.some(l=>l.staff.includes(id)):kind==="lect"?db.logs.some(l=>l.lect===id)||db.labs.some(l=>l.lect===id):db.logs.some(l=>l.lab===id);
   if(!confirm(used?"This name is used in saved records, which will then show '(deleted)'. Delete anyway?":"Delete this entry?"))return;
   db[kind]=db[kind].filter(x=>x.id!==id);save();render();
 }
@@ -349,14 +359,12 @@ function remove(kind,id){
 /* labs */
 $("labSave").onclick=()=>{
   const name=$("bName").value.trim();if(!name)return;
-  const rec={name,code:$("bCode").value.trim(),max:$("bMax").value,kind:document.querySelector("#bKind input:checked").value,lects:[...document.querySelectorAll("#bLects input:checked")].map(i=>i.value)};
+  const rec={name,lect:$("bLect").value,code:$("bCode").value.trim(),max:$("bMax").value};
   if(editLab){Object.assign(db.labs.find(x=>x.id===editLab),rec)}else db.labs.push({id:uid(),...rec});
-  editLab=null;resetSubj();save();render();
+  editLab=null;$("bName").value="";$("bCode").value="";$("bMax").value="";save();render();
 };
-function setKind(k){const r=[...document.querySelectorAll("#bKind input")];(r.find(i=>i.value===k)||r[0]).checked=true}
-function resetSubj(){$("bName").value="";$("bCode").value="";$("bMax").value="";setKind("theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=false)}
-$("labCancel").onclick=()=>{editLab=null;resetSubj();render()};
-function editLabFn(id){const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";setKind(l.kind||"theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=(l.lects||[]).includes(i.value));window.scrollTo(0,0)}
+$("labCancel").onclick=()=>{editLab=null;$("bName").value="";$("bCode").value="";$("bMax").value="";render()};
+function editLabFn(id){const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";$("bLect").value=l.lect||"";window.scrollTo(0,0)}
 
 /* log */
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -364,58 +372,39 @@ const dshort=d=>{const[y,m,dd]=d.split("-");return (+dd)+"-"+MONTHS[+m-1].slice(
 const getSet=(id,d="")=>{const r=db.set.find(x=>x.id===id);return r?r.v:d};
 function setSet(id,v){const r=db.set.find(x=>x.id===id);if(r)r.v=v;else db.set.push({id,v});save()}
 const tType=l=>l.type||"lab";
-const isT=l=>{const t=tType(l);return t==="lab"||t==="theory"};
-function whatT(l){const t=tType(l);if(t==="lab"||t==="theory")return nm(db.labs,l.lab)+(t==="theory"?" (Theory)":" (Lab)");return (t==="work"?"Other work: ":"Remark: ")+(l.desc||"")}
+function whatT(l){const t=tType(l);if(t==="lab")return nm(db.labs,l.lab);return (t==="work"?"Other work: ":"Remark: ")+(l.desc||"")}
 const what=l=>esc(whatT(l));
-const batchTxt=l=>!isT(l)?"-":(!l.batch||l.batch==="ALL"?"All students":"Batch "+l.batch.slice(-1));
+const batchTxt=l=>tType(l)!=="lab"?"-":(!l.batch||l.batch==="ALL"?"All students":"Batch "+l.batch.slice(-1));
 const hrsOf=l=>(l.periods&&l.periods.length)?l.periods.length:(l.hrs||0);
 const nfmt=x=>String(+(+x).toFixed(2));
 const getBatch=()=>(document.querySelector("#lBatch input:checked")||{}).value||"ALL";
 function setBatch(b){const all=[...document.querySelectorAll("#lBatch input")];(all.find(i=>i.value===b)||all[0]).checked=true}
 function applyType(){
-  const t=$("lType").value,te=t==="lab"||t==="theory";
-  document.querySelectorAll(".forteach").forEach(e=>e.classList.toggle("hide",!te));
-  document.querySelectorAll(".forbatch").forEach(e=>e.classList.toggle("hide",t!=="lab"));
-  document.querySelectorAll(".fornon").forEach(e=>e.classList.toggle("hide",te));
-  $("lSubLbl").textContent=t==="theory"?"Subject (theory)":t==="lab"?"Subject (lab)":"Subject";
+  const t=$("lType").value;
+  document.querySelectorAll(".forlab").forEach(e=>e.classList.toggle("hide",t!=="lab"));
+  document.querySelectorAll(".fornon").forEach(e=>e.classList.toggle("hide",t==="lab"));
+  $("lStaffLbl").textContent=t==="lab"?"Lab staff present (at least 2)":"Lab staff who did this (at least 1)";
   $("lPerLbl").textContent=t==="remark"?"Periods (optional)":"Periods";
 }
-let showAllSubj=false,editExtra=[];
-function fillSubjects(sel){
-  const t=$("lType").value,who=$("lWho").value;
-  if(t!=="theory"&&t!=="lab"){$("lLab").innerHTML=opts(db.labs,sel,"Choose subject");$("lAllBox").classList.add("hide");return}
-  const kindOk=db.labs.filter(x=>x.kind===t||!x.kind||x.id===sel);
-  const mine=kindOk.filter(x=>!who||!(x.lects||[]).length||x.lects.includes(who)||x.id===sel);
-  $("lLab").innerHTML=opts(showAllSubj?kindOk:mine,sel,"Choose subject");
-  $("lAllBox").classList.toggle("hide",!(who&&!showAllSubj&&mine.length<kindOk.length));
-}
-$("lType").onchange=()=>{applyType();showAllSubj=false;fillSubjects("")};
-$("lWho").onchange=()=>{
-  showAllSubj=false;
-  const cur=$("lLab").value,sub=db.labs.find(x=>x.id===cur),who=$("lWho").value;
-  const ok=!sub||!who||!(sub.lects||[]).length||sub.lects.includes(who);
-  fillSubjects(ok?cur:"");
-};
-$("lLab").onchange=()=>{
-  const sub=db.labs.find(x=>x.id===$("lLab").value);
-  if(sub&&!$("lWho").value&&(sub.lects||[]).length===1)$("lWho").value=sub.lects[0];
-};
-$("lAll").onclick=()=>{showAllSubj=true;fillSubjects($("lLab").value)};
+$("lType").onchange=applyType;
+$("lLab").onchange=()=>{const l=db.labs.find(x=>x.id===$("lLab").value);if(l&&l.lect)$("lLect").value=l.lect};
 $("logSave").onclick=()=>{
   const t=$("lType").value,m=$("logMsg");
-  const who=$("lWho").value,staff=who?[who,...(editLog?editExtra:[]).filter(x=>x!==who)]:[];
+  const staff=[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
   const periods=[...document.querySelectorAll("#lPer input:checked")].map(i=>+i.value).sort((a,b)=>a-b);
   const rec={type:t,date:$("lDate").value,periods,staff};
-  if(t==="lab"||t==="theory")Object.assign(rec,{lab:$("lLab").value,batch:t==="lab"?getBatch():"ALL",hrs:periods.length,note:$("lNote").value.trim(),desc:""});
-  else Object.assign(rec,{lab:"",batch:"",hrs:0,note:"",desc:$("lDesc").value.trim()});
+  if(t==="lab")Object.assign(rec,{lab:$("lLab").value,lect:$("lLect").value,batch:getBatch(),hrs:periods.length,note:$("lNote").value.trim(),desc:""});
+  else Object.assign(rec,{lab:"",lect:"",batch:"",hrs:0,note:"",desc:$("lDesc").value.trim()});
   if(!rec.date)return m.textContent="Pick a date.";
-  if(!staff.length)return m.textContent="Choose the lecturer.";
-  if(t==="lab"||t==="theory"){
-    if(!rec.lab)return m.textContent="Choose a subject. Add subjects in the Subjects tab first.";
+  if(t==="lab"){
+    if(!rec.lab)return m.textContent="Choose a lab. Add labs in the Labs tab first.";
+    if(!rec.lect)return m.textContent="Choose a lecturer. Add lecturers in the Lecturers tab first.";
     if(!periods.length)return m.textContent="Select at least one period (FN 1-3 or AN 4-6).";
+    if(staff.length<2)return m.textContent="At least 2 lab staff must be selected.";
   }else{
     if(!rec.desc)return m.textContent="Describe the work or duty.";
     if(t==="work"&&!periods.length)return m.textContent="Select the periods for this work.";
+    if(!staff.length)return m.textContent="Select the staff member(s).";
   }
   const clash=db.logs.find(l=>l.id!==editLog&&l.date===rec.date&&(l.periods||[]).some(p=>periods.includes(p))&&l.staff.some(x=>staff.includes(x)));
   if(clash){const who=clash.staff.filter(x=>staff.includes(x)).map(x=>nm(db.staff,x)).join(", ");return m.textContent=who+" already logged for "+whatT(clash)+(tType(clash)==="lab"?" - "+batchTxt(clash):"")+" ("+perTxt(clash.periods)+") on this date. Check the periods.";}
@@ -431,13 +420,14 @@ function renderLog(){
   $("logTitle").textContent=e?"Edit entry":"Log an entry";
   $("logCancel").style.display=e?"":"none";
   $("lDate").value=e?e.date:($("lDate").value||today());
+  $("lLab").innerHTML=opts(db.labs,e?e.lab:$("lLab").value,"Choose lab");
+  $("lLect").innerHTML=opts(db.lect,e?e.lect:$("lLect").value,"Choose lecturer");
   if(e){$("lType").value=tType(e);setBatch(e.batch);$("lDesc").value=e.desc||"";$("lNote").value=e.note||"";setPer(e.periods||[])}
   applyType();
-  $("lWho").innerHTML=opts(db.staff,e?e.staff[0]:$("lWho").value,"Choose lecturer");
-  editExtra=e?e.staff.slice(1):[];
-  fillSubjects(e?e.lab:$("lLab").value);
+  const sel=e?e.staff:[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
+  $("lStaff").innerHTML=db.staff.length?db.staff.map(s=>`<label><input type="checkbox" value="${s.id}"${sel.includes(s.id)?" checked":""}>${esc(s.name)}</label>`).join(""):`<span class="empty">Add lab staff first.</span>`;
   const rows=[...db.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
-  $("logList").innerHTML=rows.length?`<table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer(s)</th><th>Hrs</th><th></th></tr></thead><tbody>${rows.map(l=>{const lab=isT(l);return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${l.staff.map(s=>`<span class="tag">${esc(nm(db.staff,s))}</span>`).join("")}</td><td>${lab?hrsOf(l):"-"}</td><td style="white-space:nowrap"><button class="edit" onclick="editLogFn('${l.id}')">Edit</button><button class="del" onclick="delLog('${l.id}')">Delete</button></td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No entries logged yet.</div>`;
+  $("logList").innerHTML=rows.length?`<table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer</th><th>Staff</th><th>Hrs</th><th></th></tr></thead><tbody>${rows.map(l=>{const lab=tType(l)==="lab";return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${lab?esc(nm(db.lect,l.lect)):"-"}</td><td>${l.staff.map(s=>`<span class="tag">${esc(nm(db.staff,s))}</span>`).join("")}</td><td>${lab?hrsOf(l):"-"}</td><td style="white-space:nowrap"><button class="edit" onclick="editLogFn('${l.id}')">Edit</button><button class="del" onclick="delLog('${l.id}')">Delete</button></td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No entries logged yet.</div>`;
 }
 
 /* report */
@@ -446,10 +436,11 @@ function reportRows(){
   return db.logs.filter(l=>(!m||l.date.startsWith(m))&&(!s||l.staff.includes(s))).sort((a,b)=>a.date.localeCompare(b.date)||Math.min(...(a.periods||[9]))-Math.min(...(b.periods||[9])));
 }
 function sheet(rows,s,mo){
-  if(!rows.length)return `<div class="empty">No entries for this lecturer in this month.</div>`;
-  const lab=rows.filter(l=>isT(l));
+  if(!rows.length)return `<div class="empty">No entries for this staff member in this month.</div>`;
+  const lab=rows.filter(l=>tType(l)==="lab");
   const sem0=getSet("sem");
-  const colRows=(sem0&&mo&&mo>=sem0)?db.logs.filter(l=>l.staff.includes(s)&&isT(l)&&l.date.slice(0,7)<=mo&&l.date>=sem0+"-01").sort((a,b)=>a.date.localeCompare(b.date)):lab;
+  const hist=mo?db.logs.filter(l=>l.staff.includes(s)&&tType(l)==="lab"&&l.date.slice(0,7)<=mo&&(!sem0||l.date>=sem0+"-01")).sort((a,b)=>a.date.localeCompare(b.date)):[];
+  const colRows=hist.length?hist:lab;
   const groups=[];
   colRows.forEach(l=>{let g=groups.find(x=>x.lab===l.lab);if(!g){g={lab:l.lab,cols:[]};groups.push(g)}const b=l.batch||"ALL";if(!g.cols.some(c=>c.b===b))g.cols.push({k:l.lab+"|"+b,b})});
   groups.forEach(g=>g.cols.sort((a,b)=>a.b.localeCompare(b.b)));
@@ -460,18 +451,21 @@ function sheet(rows,s,mo){
   const dates=[...new Set(rows.map(l=>l.date))].sort();
   const body=dates.map((d,i)=>{
     const day=rows.filter(l=>l.date===d);
-    const cells=flat.map(c=>`<td class="c">${per(day.filter(l=>isT(l)&&(l.lab+"|"+(l.batch||"ALL"))===c.k).flatMap(l=>l.periods||[]))}</td>`).join("");
+    const cells=flat.map(c=>`<td class="c">${per(day.filter(l=>tType(l)==="lab"&&(l.lab+"|"+(l.batch||"ALL"))===c.k).flatMap(l=>l.periods||[]))}</td>`).join("");
     const works=day.filter(l=>tType(l)==="work");
-    const rem=[...day.filter(l=>tType(l)==="remark").map(l=>l.desc||""),...day.filter(l=>isT(l)&&l.note).map(l=>l.note)].map(esc).join("; ");
+    const rem=[...day.filter(l=>tType(l)==="remark").map(l=>l.desc||""),...day.filter(l=>tType(l)==="lab"&&l.note).map(l=>l.note)].map(esc).join("; ");
     return `<tr><td class="c">${i+1}</td><td class="c nw">${dshort(d)}</td>${cells}<td>${works.map(l=>esc(l.desc||"")).join("<br>")}</td><td class="c">${works.map(l=>per(l.periods||[])).join("<br>")}</td><td>${rem}</td></tr>`;
   }).join("");
   const mx=getSet("max"),sem=getSet("sem"),start=mo?mo+"-01":"";
   const curOf=g=>lab.filter(l=>l.lab===g.lab).reduce((a,l)=>a+hrsOf(l),0);
-  const prevOf=g=>mo?db.logs.filter(l=>l.staff.includes(s)&&isT(l)&&l.lab===g.lab&&l.date<start&&(!sem||l.date>=sem+"-01")).reduce((a,l)=>a+hrsOf(l),0):0;
+  const prevRows=g=>mo?db.logs.filter(l=>l.staff.includes(s)&&tType(l)==="lab"&&l.lab===g.lab&&l.date<start&&(!sem||l.date>=sem+"-01")):[];
+  const prevOf=g=>prevRows(g).reduce((a,l)=>a+hrsOf(l),0);
   const maxOf=g=>{const v=L(g).max;return (v!==undefined&&v!=="")?nfmt(v):(mx===""?"":nfmt(mx))};
   const month=mo?MONTHS[+mo.slice(5)-1]+" "+mo.slice(0,4):"All months";
   const foot=(t,fn)=>`<tr><td colspan="2" class="lbl">${t}</td>${groups.map(g=>`<td colspan="${g.cols.length}" class="c">${g.lab===null?"":fn(g)}</td>`).join("")}<td colspan="3"></td></tr>`;
   const cert="As per circular L1/23290/2017/DTE dt 22/06/2017 certified that the above guest faculty has engaged classroom works as well as other academic works on the days mentioned above, verified as per class log and subject logs. Also certified that particulars furnished by the faculty are correct and hence claim is justified.";
+  const mname=k=>MONTHS[+k.slice(5)-1].slice(0,3)+" "+k.slice(0,4);
+  const note=`<b>How the previous hours were worked out</b> (shown on screen only, not printed)<br>Semester start month: ${sem?mname(sem):"not set, so all earlier months are counted"}<br>`+groups.filter(g=>g.lab!==null).map(g=>{const by={};prevRows(g).forEach(l=>{const k=l.date.slice(0,7);by[k]=(by[k]||0)+hrsOf(l)});const parts=Object.keys(by).sort().map(k=>mname(k)+": "+nfmt(by[k]));return esc(L(g).name)+": "+(parts.length?parts.join(", "):"no earlier hours found")}).join("<br>");
   return `<div class="paper">
 <div class="bh">${esc(getSet("college")||"COLLEGE NAME")}</div>
 <div class="meta"><span>Statement of classes and academic work conducted by</span><span>Name: <b>${esc(nm(db.staff,s))}</b></span><span>Designation: <b>${esc(getSet("desig-"+s))}</b></span><span>Department: <b>${esc(getSet("dept","Civil Engineering"))}</b></span><span>During the month of <b>${month}</b></span></div>
@@ -490,19 +484,20 @@ ${foot("Maximum Teaching Hours",maxOf)}
 <tr><td class="c lbl" style="width:36%">No. of days worked:</td><td class="c lbl" style="width:12%">${dates.length}</td><td class="cert">${cert}</td></tr>
 <tr><td colspan="2" class="sig">Signature of Employee:</td><td class="sig">Signature of HoD with name and designation:</td></tr>
 <tr><td colspan="3" style="height:40px;vertical-align:bottom"><div class="pay"><span>Passed for payment Rs:</span><i class="dot" style="flex:2"></i><span>( Rupees</span><i class="dot" style="flex:5"></i><span>) at the rate of Rs:</span><i class="dot" style="flex:2"></i><span>as daily wage</span></div></td></tr></table>
-</div>`;
+</div>
+<div class="noprint" style="color:var(--mute);font-size:13px;margin-top:10px;line-height:1.6">${note}</div>`;
 }
 function listView(rows){
   if(!rows.length)return `<div class="empty">No entries for this selection.</div>`;
-  const hr=r=>r.reduce((a,l)=>a+(isT(l)?hrsOf(l):0),0);
-  const sum=`<h2>Summary by lecturer</h2><table><thead><tr><th>Lecturer</th><th>Days</th><th>Teaching periods</th><th>Teaching hours</th></tr></thead><tbody>${db.staff.map(p=>{const r=rows.filter(l=>l.staff.includes(p.id));return `<tr><td>${esc(p.name)}</td><td>${new Set(r.map(l=>l.date)).size}</td><td>${r.filter(l=>isT(l)).reduce((a,l)=>a+(l.periods||[]).length,0)}</td><td>${nfmt(hr(r))}</td></tr>`}).join("")}</tbody></table><p class="noprint" style="color:var(--mute);font-size:13px">Choose a lecturer above to see the bill sheet.</p>`;
-  return sum+`<h2>All entries</h2><table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer(s)</th><th>Hrs</th></tr></thead><tbody>${rows.map(l=>{const lab=isT(l);return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${l.staff.map(x=>esc(nm(db.staff,x))).join(", ")}</td><td>${lab?hrsOf(l):"-"}</td></tr>`}).join("")}</tbody></table>`;
+  const hr=r=>r.reduce((a,l)=>a+(tType(l)==="lab"?hrsOf(l):0),0);
+  const sum=`<h2>Summary by staff</h2><table><thead><tr><th>Staff</th><th>Days</th><th>Lab periods</th><th>Lab hours</th></tr></thead><tbody>${db.staff.map(p=>{const r=rows.filter(l=>l.staff.includes(p.id));return `<tr><td>${esc(p.name)}</td><td>${new Set(r.map(l=>l.date)).size}</td><td>${r.filter(l=>tType(l)==="lab").reduce((a,l)=>a+(l.periods||[]).length,0)}</td><td>${nfmt(hr(r))}</td></tr>`}).join("")}</tbody></table><p class="noprint" style="color:var(--mute);font-size:13px">Choose a lab staff member above to see the bill sheet.</p>`;
+  return sum+`<h2>All entries</h2><table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer</th><th>Staff</th><th>Hrs</th></tr></thead><tbody>${rows.map(l=>{const lab=tType(l)==="lab";return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${lab?esc(nm(db.lect,l.lect)):"-"}</td><td>${l.staff.map(x=>esc(nm(db.staff,x))).join(", ")}</td><td>${lab?hrsOf(l):"-"}</td></tr>`}).join("")}</tbody></table>`;
 }
 function renderReport(){
   if(!$("rMonth").value)$("rMonth").value=today().slice(0,7);
   let cur=$("rStaff").value;
   if(!cur){try{cur=localStorage.getItem(KEY+".me")||""}catch(e){}}
-  $("rStaff").innerHTML=opts(db.staff,cur,"Select your name")+`<option value="__all"${cur==="__all"?" selected":""}>All lecturers (summary)</option>`;
+  $("rStaff").innerHTML=opts(db.staff,cur,"Select your name")+`<option value="__all"${cur==="__all"?" selected":""}>All staff (summary)</option>`;
   const s=$("rStaff").value,mo=$("rMonth").value,one=s&&s!=="__all";
   const fill=(id,v)=>{if(document.activeElement!==$(id))$(id).value=v};
   fill("rCollege",getSet("college"));fill("rDept",getSet("dept","Civil Engineering"));fill("rMax",getSet("max"));
@@ -519,7 +514,7 @@ $("rDesig").onchange=()=>{const s=$("rStaff").value;if(s&&s!=="__all")setSet("de
 $("rSem").onchange=()=>{setSet("sem",$("rSem").value);renderReport()};
 $("csvBtn").onclick=()=>{
   const q=v=>`"${String(v).replace(/"/g,'""')}"`;
-  const lines=[["Date","Periods","Entry","Batch","Lecturer(s)","Hours","Remarks"].join(",")].concat(reportRows().map(l=>{const lab=isT(l);return [fmt(l.date),perTxt(l.periods),whatT(l),batchTxt(l),l.staff.map(x=>nm(db.staff,x)).join("; "),lab?hrsOf(l):"",lab?(l.note||""):""].map(q).join(",")}));
+  const lines=[["Date","Periods","Entry","Batch","Lecturer","Staff","Hours","Remarks"].join(",")].concat(reportRows().map(l=>{const lab=tType(l)==="lab";return [fmt(l.date),perTxt(l.periods),whatT(l),batchTxt(l),lab?nm(db.lect,l.lect):"",l.staff.map(x=>nm(db.staff,x)).join("; "),lab?hrsOf(l):"",lab?(l.note||""):""].map(q).join(",")}));
   dl("lab-duty-"+($("rMonth").value||"all")+".csv","text/csv","\ufeff"+lines.join("\n"));
 };
 
@@ -529,7 +524,7 @@ $("exp").onclick=()=>dl("lab-duty-backup-"+today()+".json","application/json",JS
 $("impBtn").onclick=()=>$("impFile").click();
 $("impFile").onchange=e=>{
   const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.staff||!d.labs||!d.logs)throw 0;
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.staff||!d.lect||!d.labs||!d.logs)throw 0;
     if(!confirm("This replaces all current data. Continue?"))return;db=d;db.del=db.del||{};COLS.forEach(c=>db[c]=db[c]||[]);save();render();$("dataMsg").style.color="var(--accent)";$("dataMsg").textContent="Backup restored."}
     catch{$("dataMsg").style.color="var(--warn)";$("dataMsg").textContent="That file is not a valid backup."}};
   r.readAsText(f);e.target.value="";
@@ -537,11 +532,11 @@ $("impFile").onchange=e=>{
 
 function render(){
   $("staffList").innerHTML=listHtml(db.staff,"staff");
-  const bsel=[...document.querySelectorAll("#bLects input:checked")].map(i=>i.value);
-  $("bLects").innerHTML=db.staff.length?db.staff.map(p=>`<label><input type="checkbox" value="${p.id}"${bsel.includes(p.id)?" checked":""}>${esc(p.name)}</label>`).join(""):`<span class="empty">Add lecturers in the Lecturers tab first.</span>`;
-  $("labTitle").textContent=editLab?"Edit subject":"Add a subject";
+  $("lectList").innerHTML=listHtml(db.lect,"lect");
+  $("bLect").innerHTML=opts(db.lect,$("bLect").value,"None");
+  $("labTitle").textContent=editLab?"Edit lab":"Add a lab";
   $("labCancel").style.display=editLab?"":"none";
-  $("labList").innerHTML=db.labs.length?`<table><thead><tr><th>Subject</th><th>Type</th><th>Class</th><th>Lecturers</th><th>Max hrs</th><th></th></tr></thead><tbody>${db.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.kind==="lab"?"Lab":l.kind==="theory"?"Theory":"-"}</td><td>${esc(l.code||"")}</td><td>${(l.lects||[]).map(x=>`<span class="tag">${esc(nm(db.staff,x))}</span>`).join("")}</td><td>${esc(l.max||"")}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="editLabFn('${l.id}')">Edit</button><button class="del" onclick="remove('labs','${l.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No subjects yet. Add them above.</div>`;
+  $("labList").innerHTML=db.labs.length?`<table><thead><tr><th>Lab / subject</th><th>Class</th><th>Usual lecturer</th><th>Max hrs</th><th></th></tr></thead><tbody>${db.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.code||"")}</td><td>${esc(l.lect?nm(db.lect,l.lect):"")}</td><td>${esc(l.max||"")}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="editLabFn('${l.id}')">Edit</button><button class="del" onclick="remove('labs','${l.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No labs yet. Add your subjects above.</div>`;
   renderLog();renderReport();
 }
 document.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>setPer(b.dataset.per?b.dataset.per.split(",").map(Number):[]));
