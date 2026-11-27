@@ -87,7 +87,7 @@ button.link:hover{text-decoration:underline}
     <div class="row">
       <div><label for="lDate">Date</label><input type="date" id="lDate"></div>
       <div><label for="lType">Entry type</label><select id="lType"><option value="theory">Theory class</option><option value="lab">Lab session</option><option value="work">Other academic work (record only)</option><option value="remark">Remark / duty only</option></select></div>
-      <div class="forteach"><label for="lLab">Subject</label><select id="lLab"></select></div>
+      <div class="forteach"><label for="lLab" id="lSubLbl">Subject</label><select id="lLab"></select></div>
       <div class="forbatch hide" style="grid-column:1/-1"><label>Batch</label><div class="checks" id="lBatch"><label><input type="radio" name="batch" value="ALL" checked>All students</label><label><input type="radio" name="batch" value="BATCH-1">Batch 1</label><label><input type="radio" name="batch" value="BATCH-2">Batch 2</label></div></div>
       <div class="forteach"><label for="lHrs">Hours</label><input type="number" id="lHrs" min="0" step="0.5" value="3"></div>
       <div class="fornon hide" style="grid-column:1/-1"><label for="lDesc">Description (shown in the bill)</label><input id="lDesc" placeholder="e.g. Course file work, Special class, Exam invigilation duty"></div>
@@ -99,6 +99,7 @@ button.link:hover{text-decoration:underline}
     </div>
     <label id="lStaffLbl">Lecturer(s) who took this (at least 1)</label>
     <div class="checks" id="lStaff"></div>
+    <div id="lAllBox" class="hide" style="font-size:13px;color:var(--mute);margin-top:6px">Showing the lecturers assigned to this subject. <button type="button" class="link" id="lAll">Show all lecturers</button></div>
     <div class="forteach" style="margin-top:12px"><label for="lNote">Remarks (optional, shown in the bill)</label><input id="lNote"></div>
     <p class="msg" id="logMsg"></p>
     <div class="tools"><button class="btn" id="logSave">Save session</button><button class="btn ghost" id="logCancel" style="display:none">Cancel edit</button></div>
@@ -133,6 +134,8 @@ button.link:hover{text-decoration:underline}
       <div><label for="bName">Subject name</label><input id="bName" placeholder="e.g. Theory of Structures"></div>
       <div><label for="bCode">Class (as shown in the bill)</label><input id="bCode" placeholder="e.g. S3CE"></div>
       <div><label for="bMax">Max teaching hours (optional)</label><input id="bMax" type="number" min="0" step="0.5" placeholder="e.g. 36"></div>
+      <div><label>Subject type</label><div class="checks" id="bKind"><label><input type="radio" name="kind" value="theory" checked>Theory</label><label><input type="radio" name="kind" value="lab">Lab</label></div></div>
+      <div style="grid-column:1/-1"><label>Lecturers assigned to this subject (one or more)</label><div class="checks" id="bLects"></div></div>
     </div>
     <div class="tools"><button class="btn" id="labSave">Save subject</button><button class="btn ghost" id="labCancel" style="display:none">Cancel</button></div>
   </div>
@@ -340,7 +343,7 @@ $("sAdd").onclick=()=>addName("staff","sName");
 $("sName").addEventListener("keydown",e=>{if(e.key==="Enter")$("sAdd").click()});
 function rename(kind,id){const o=db[kind].find(x=>x.id===id);const v=prompt("New name:",o.name);if(v&&v.trim()){o.name=v.trim();save();render()}}
 function remove(kind,id){
-  const used=kind==="staff"?db.logs.some(l=>l.staff.includes(id)):db.logs.some(l=>l.lab===id);
+  const used=kind==="staff"?db.logs.some(l=>l.staff.includes(id))||db.labs.some(l=>(l.lects||[]).includes(id)):db.logs.some(l=>l.lab===id);
   if(!confirm(used?"This name is used in saved records, which will then show '(deleted)'. Delete anyway?":"Delete this entry?"))return;
   db[kind]=db[kind].filter(x=>x.id!==id);save();render();
 }
@@ -348,12 +351,14 @@ function remove(kind,id){
 /* labs */
 $("labSave").onclick=()=>{
   const name=$("bName").value.trim();if(!name)return;
-  const rec={name,code:$("bCode").value.trim(),max:$("bMax").value};
+  const rec={name,code:$("bCode").value.trim(),max:$("bMax").value,kind:document.querySelector("#bKind input:checked").value,lects:[...document.querySelectorAll("#bLects input:checked")].map(i=>i.value)};
   if(editLab){Object.assign(db.labs.find(x=>x.id===editLab),rec)}else db.labs.push({id:uid(),...rec});
-  editLab=null;$("bName").value="";$("bCode").value="";$("bMax").value="";save();render();
+  editLab=null;resetSubj();save();render();
 };
-$("labCancel").onclick=()=>{editLab=null;$("bName").value="";$("bCode").value="";$("bMax").value="";render()};
-function editLabFn(id){const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";window.scrollTo(0,0)}
+function setKind(k){const r=[...document.querySelectorAll("#bKind input")];(r.find(i=>i.value===k)||r[0]).checked=true}
+function resetSubj(){$("bName").value="";$("bCode").value="";$("bMax").value="";setKind("theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=false)}
+$("labCancel").onclick=()=>{editLab=null;resetSubj();render()};
+function editLabFn(id){const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";setKind(l.kind||"theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=(l.lects||[]).includes(i.value));window.scrollTo(0,0)}
 
 /* log */
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -373,9 +378,33 @@ function applyType(){
   document.querySelectorAll(".forteach").forEach(e=>e.classList.toggle("hide",!te));
   document.querySelectorAll(".forbatch").forEach(e=>e.classList.toggle("hide",t!=="lab"));
   document.querySelectorAll(".fornon").forEach(e=>e.classList.toggle("hide",te));
+  $("lSubLbl").textContent=t==="theory"?"Subject (theory)":t==="lab"?"Subject (lab)":"Subject";
   $("lPerLbl").textContent=t==="remark"?"Periods (optional)":"Periods";
 }
-$("lType").onchange=applyType;
+let showAllLect=false;
+function fillSubjects(sel){
+  const t=$("lType").value;
+  const list=(t==="theory"||t==="lab")?db.labs.filter(x=>x.kind===t||!x.kind||x.id===sel):db.labs;
+  $("lLab").innerHTML=opts(list,sel,"Choose subject");
+}
+function assignedOf(){
+  const sub=db.labs.find(x=>x.id===$("lLab").value),t=$("lType").value;
+  return (sub&&(t==="theory"||t==="lab"))?(sub.lects||[]).filter(id=>db.staff.some(p=>p.id===id)):[];
+}
+function renderStaffChips(sel){
+  sel=sel||[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
+  const a=assignedOf(),only=a.length>0&&!showAllLect;
+  const list=only?db.staff.filter(p=>a.includes(p.id)||sel.includes(p.id)):db.staff;
+  $("lStaff").innerHTML=list.length?list.map(p=>`<label><input type="checkbox" value="${p.id}"${sel.includes(p.id)?" checked":""}>${esc(p.name)}</label>`).join(""):`<span class="empty">Add lecturers in the Lecturers tab first.</span>`;
+  $("lAllBox").classList.toggle("hide",!(only&&list.length<db.staff.length));
+}
+$("lType").onchange=()=>{applyType();fillSubjects("");showAllLect=false;renderStaffChips()};
+$("lLab").onchange=()=>{
+  showAllLect=false;
+  const a=assignedOf(),cur=[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
+  renderStaffChips(a.length===1?[a[0]]:(a.length?cur.filter(x=>a.includes(x)):cur));
+};
+$("lAll").onclick=()=>{showAllLect=true;renderStaffChips()};
 $("logSave").onclick=()=>{
   const t=$("lType").value,m=$("logMsg");
   const staff=[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
@@ -406,11 +435,10 @@ function renderLog(){
   $("logTitle").textContent=e?"Edit entry":"Log an entry";
   $("logCancel").style.display=e?"":"none";
   $("lDate").value=e?e.date:($("lDate").value||today());
-  $("lLab").innerHTML=opts(db.labs,e?e.lab:$("lLab").value,"Choose subject");
   if(e){$("lType").value=tType(e);setBatch(e.batch);$("lDesc").value=e.desc||"";$("lHrs").value=isT(e)?e.hrs:3;$("lNote").value=e.note||"";setPer(e.periods||[])}
   applyType();
-  const sel=e?e.staff:[...document.querySelectorAll("#lStaff input:checked")].map(i=>i.value);
-  $("lStaff").innerHTML=db.staff.length?db.staff.map(s=>`<label><input type="checkbox" value="${s.id}"${sel.includes(s.id)?" checked":""}>${esc(s.name)}</label>`).join(""):`<span class="empty">Add lecturers in the Lecturers tab first.</span>`;
+  fillSubjects(e?e.lab:$("lLab").value);
+  renderStaffChips(e?e.staff:null);
   const rows=[...db.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
   $("logList").innerHTML=rows.length?`<table><thead><tr><th>Date</th><th>Periods</th><th>Entry</th><th>Batch</th><th>Lecturer(s)</th><th>Hrs</th><th></th></tr></thead><tbody>${rows.map(l=>{const lab=isT(l);return `<tr><td>${fmt(l.date)}</td><td>${perTxt(l.periods)}</td><td>${what(l)}</td><td>${batchTxt(l)}</td><td>${l.staff.map(s=>`<span class="tag">${esc(nm(db.staff,s))}</span>`).join("")}</td><td>${lab?l.hrs:"-"}</td><td style="white-space:nowrap"><button class="edit" onclick="editLogFn('${l.id}')">Edit</button><button class="del" onclick="delLog('${l.id}')">Delete</button></td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No entries logged yet.</div>`;
 }
@@ -512,9 +540,11 @@ $("impFile").onchange=e=>{
 
 function render(){
   $("staffList").innerHTML=listHtml(db.staff,"staff");
+  const bsel=[...document.querySelectorAll("#bLects input:checked")].map(i=>i.value);
+  $("bLects").innerHTML=db.staff.length?db.staff.map(p=>`<label><input type="checkbox" value="${p.id}"${bsel.includes(p.id)?" checked":""}>${esc(p.name)}</label>`).join(""):`<span class="empty">Add lecturers in the Lecturers tab first.</span>`;
   $("labTitle").textContent=editLab?"Edit subject":"Add a subject";
   $("labCancel").style.display=editLab?"":"none";
-  $("labList").innerHTML=db.labs.length?`<table><thead><tr><th>Subject</th><th>Class</th><th>Max hrs</th><th></th></tr></thead><tbody>${db.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.code||"")}</td><td>${esc(l.max||"")}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="editLabFn('${l.id}')">Edit</button><button class="del" onclick="remove('labs','${l.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No subjects yet. Add them above.</div>`;
+  $("labList").innerHTML=db.labs.length?`<table><thead><tr><th>Subject</th><th>Type</th><th>Class</th><th>Lecturers</th><th>Max hrs</th><th></th></tr></thead><tbody>${db.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.kind==="lab"?"Lab":l.kind==="theory"?"Theory":"-"}</td><td>${esc(l.code||"")}</td><td>${(l.lects||[]).map(x=>`<span class="tag">${esc(nm(db.staff,x))}</span>`).join("")}</td><td>${esc(l.max||"")}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="editLabFn('${l.id}')">Edit</button><button class="del" onclick="remove('labs','${l.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No subjects yet. Add them above.</div>`;
   renderLog();renderReport();
 }
 document.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>setPer(b.dataset.per?b.dataset.per.split(",").map(Number):[]));
