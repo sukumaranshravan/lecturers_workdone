@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dept of Civil Eng: Lecturer Duty Register</title>
+<title>Dept of Civil Eng:Lecturer Duty Register</title>
 <style>
 :root{--bg:#f3f5f2;--card:#fff;--ink:#1d2a26;--mute:#66736e;--line:#d6ddd8;--accent:#1f6f5c;--accent-ink:#fff;--warn:#b3402a;--soft:#e4efe9}
 @media (prefers-color-scheme:dark){:root{--bg:#141b18;--card:#1c2622;--ink:#e6eee9;--mute:#98a8a1;--line:#2d3b35;--accent:#58b99f;--accent-ink:#0f1a16;--warn:#ef8a74;--soft:#233a31}}
@@ -67,8 +67,8 @@ button.link:hover{text-decoration:underline}
 </head>
 <body>
 <header>
-  <h1>Lecturer Duty Register: Department of Civil Engineering</h1>
-  <p>Record which lecturer took which theory class or lab, helps to create monthly bill and cross check all details..</p>
+  <h1>Dept of Civil Engineering - Lecturer Duty Register</h1>
+  <p>Keep the Record of each lecturer's workdone </p>
   <p id="syncStat" style="margin-top:4px"></p>
 </header>
 <nav id="nav">
@@ -401,6 +401,20 @@ $("lLab").onchange=()=>{
   if(sub&&!$("lWho").value&&(sub.lects||[]).length===1)$("lWho").value=sub.lects[0];
 };
 $("lAll").onclick=()=>{showAllSubj=true;fillSubjects($("lLab").value)};
+function classClash(rec){
+  if(!(rec.type==="lab"||rec.type==="theory"))return null;
+  const sub=db.labs.find(x=>x.id===rec.lab),code=sub?(sub.code||"").trim().toLowerCase():"";
+  if(!code)return null;
+  const bat=rec.batch||"ALL";
+  return db.logs.find(l=>{
+    if(l.id===editLog||!isT(l)||l.date!==rec.date||l.lab===rec.lab)return false;
+    if(!(l.periods||[]).some(p=>rec.periods.includes(p)))return false;
+    const o=db.labs.find(x=>x.id===l.lab);
+    if(!o||(o.code||"").trim().toLowerCase()!==code)return false;
+    const lb=l.batch||"ALL";
+    return bat==="ALL"||lb==="ALL"||lb===bat;
+  })||null;
+}
 $("logSave").onclick=()=>{
   const t=$("lType").value,m=$("logMsg");
   const who=$("lWho").value,staff=who?[who,...(editLog?editExtra:[]).filter(x=>x!==who)]:[];
@@ -419,6 +433,8 @@ $("logSave").onclick=()=>{
   }
   const clash=db.logs.find(l=>l.id!==editLog&&l.date===rec.date&&(l.periods||[]).some(p=>periods.includes(p))&&l.staff.some(x=>staff.includes(x)));
   if(clash){const who=clash.staff.filter(x=>staff.includes(x)).map(x=>nm(db.staff,x)).join(", ");return m.textContent=who+" already logged for "+whatT(clash)+(tType(clash)==="lab"?" - "+batchTxt(clash):"")+" ("+perTxt(clash.periods)+") on this date. Check the periods.";}
+  const cc=classClash(rec);
+  if(cc){const ov=(cc.periods||[]).filter(p=>periods.includes(p));return m.textContent="Clash: the same class ("+(db.labs.find(x=>x.id===rec.lab).code||"").trim()+") already has "+nm(db.labs,cc.lab)+" ("+batchTxt(cc)+") with "+cc.staff.map(x=>nm(db.staff,x)).join(", ")+" on "+fmt(cc.date)+", "+perTxt(ov)+". The same students cannot be in two classes at the same time.";}
   if(editLog){Object.assign(db.logs.find(x=>x.id===editLog),rec)}else db.logs.push({id:uid(),...rec});
   m.textContent="";editLog=null;$("lNote").value="";$("lDesc").value="";setPer([]);save();render();
 };
