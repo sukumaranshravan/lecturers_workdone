@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dept of Civil Eng:Lecturer Duty Register</title>
+<title>Lecturer Duty Register</title>
 <style>
 :root{--bg:#f3f5f2;--card:#fff;--ink:#1d2a26;--mute:#66736e;--line:#d6ddd8;--accent:#1f6f5c;--accent-ink:#fff;--warn:#b3402a;--soft:#e4efe9}
 @media (prefers-color-scheme:dark){:root{--bg:#141b18;--card:#1c2622;--ink:#e6eee9;--mute:#98a8a1;--line:#2d3b35;--accent:#58b99f;--accent-ink:#0f1a16;--warn:#ef8a74;--soft:#233a31}}
@@ -53,6 +53,10 @@ button.link:hover{text-decoration:underline}
 .tot{font-weight:600}
 .pay{display:flex;align-items:flex-end;gap:4px;font-size:11px;white-space:nowrap}
 .pay .dot{display:block;border-bottom:1px dotted #000;height:13px;min-width:30px}
+.lockmsg{display:none;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:14px}
+body.ro .lockmsg{display:block}
+body.ro #staff .inline,body.ro #lect .inline,body.ro #labs>.card:not(.scroll){display:none!important}
+body.ro #staff td button,body.ro #lect td button,body.ro #labList td button{display:none!important}
 .hide{display:none!important}
 .paper{background:#fff;color:#000;padding:14px;min-width:820px}
 .bh{text-align:center;font-weight:700;font-size:16px;margin-bottom:6px}
@@ -67,8 +71,8 @@ button.link:hover{text-decoration:underline}
 </head>
 <body>
 <header>
-  <h1>Dept of Civil Engineering - Lecturer Duty Register</h1>
-  <p>Keep the Record of each lecturer's workdone </p>
+  <h1>Lecturer Duty Register</h1>
+  <p>Record which lecturer took which theory class or lab, then pull a clean bill for each lecturer.</p>
   <p id="syncStat" style="margin-top:4px"></p>
 </header>
 <nav id="nav">
@@ -157,6 +161,7 @@ button.link:hover{text-decoration:underline}
       <div><label for="gRepo">Repository name</label><input id="gRepo" placeholder="lab-data" autocomplete="off"></div>
       <div><label for="gPath">File name</label><input id="gPath" placeholder="lecturer-data.json" autocomplete="off"></div>
       <div><label for="gBranch">Branch (optional)</label><input id="gBranch" placeholder="default branch" autocomplete="off"></div>
+      <div><label for="gPin">Admin PIN (optional)</label><input id="gPin" type="password" placeholder="set or change PIN" autocomplete="off"></div>
     </div>
     <div style="margin-bottom:12px"><label for="gToken">Personal access token</label><input id="gToken" type="password" placeholder="github_pat_..." autocomplete="off"></div>
     <p class="msg" id="syncMsg"></p>
@@ -167,6 +172,20 @@ button.link:hover{text-decoration:underline}
       <div class="tools"><button class="btn ghost" id="gLink">Create setup link</button></div>
       <input id="gLinkOut" readonly style="margin-top:10px;display:none" aria-label="Setup link">
       <p class="msg" id="linkMsg"></p>
+    </div>
+    <div id="restoreBox" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+      <h2>Restore an earlier version (admin)</h2>
+      <p style="color:var(--mute);margin-top:0;font-size:14px">GitHub keeps every saved version of the data file. If something was changed or deleted by mistake, load the earlier versions, pick the one you want, and restore it. Everyone's page follows after its next sync.</p>
+      <div class="tools"><button class="btn ghost" id="gVerLoad">Load earlier versions</button></div>
+      <select id="gVers" style="display:none;margin-top:10px" aria-label="Earlier versions"></select>
+      <div class="tools"><button class="btn" id="gVerGo" style="display:none;margin-top:10px">Restore this version</button></div>
+      <p class="msg" id="restoreMsg"></p>
+    </div>
+    <div id="lockBox" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+      <h2>Freeze the setup lists (admin)</h2>
+      <p style="color:var(--mute);margin-top:0;font-size:14px">When frozen, your coworkers can still see the lists but cannot add, rename, edit or delete anything in them. You keep full control on your own page.</p>
+      <p id="lockState" style="font-weight:600;margin:0 0 10px"></p>
+      <div class="tools"><button class="btn" id="gLock"></button></div>
     </div>
   </div>
 </section>
@@ -214,6 +233,13 @@ function stamp(){
   Object.keys(last).forEach(id=>{if(!ids.has(id))db.del[id]=now});
   last=snapshot();
 }
+function restoreFrom(d){
+  const now=Date.now(),del={...db.del},keep=new Set(),nd={del};
+  COLS.forEach(c=>{nd[c]=(d[c]||[]).map(r=>({...r,u:now}));nd[c].forEach(r=>{keep.add(r.id);delete del[r.id]})});
+  COLS.forEach(c=>db[c].forEach(r=>{if(!keep.has(r.id))del[r.id]=now}));
+  db=nd;last=snapshot();persist();
+}
+async function hashPin(p){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("dutyreg:"+p));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return "p:"+p}}
 function save(){stamp();persist();clearTimeout(timer);timer=setTimeout(sync,800)}
 function merge(r){
   const del={...db.del};Object.entries(r.del||{}).forEach(([k,v])=>{del[k]=Math.max(del[k]||0,v)});
@@ -282,13 +308,27 @@ async function sync(){
 }
 function fillSync(){["Owner","Repo","Path","Branch","Token"].forEach(k=>$("g"+k).value=cfg[k.toLowerCase()]||"")}
 function b64u(s){return btoa(unescape(encodeURIComponent(s)))}
+function applyLock(){
+  const locked=getSet("lock")==="1",admin=!cfg.hideSync;
+  document.body.classList.toggle("ro",locked&&!admin);
+  document.querySelectorAll(".lockmsg").forEach(e=>e.textContent="These lists are frozen by the admin. You can view them but not change them. Ask the admin if something needs updating.");
+  const st=$("lockState"),b=$("gLock");
+  if(st){st.textContent=locked?"Status: frozen":"Status: open for editing";b.textContent=locked?"Unfreeze setup lists":"Freeze setup lists"}
+}
+async function unlockAdmin(){
+  history.replaceState(null,"",location.pathname+location.search);
+  if(cfg.pinHash){const p=prompt("Enter the admin PIN to unlock the Sync and Backup tabs:");if(p===null)return;if(await hashPin(p.trim())!==cfg.pinHash){alert("Wrong PIN.");return}}
+  cfg.hideSync=false;try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}
+  applyLock();
+  document.querySelectorAll('#nav button[data-t="sync"],#nav button[data-t="data"]').forEach(b=>b.style.display="");
+}
 function importSetup(){
   const h=location.hash;
-  if(h==="#admin"){cfg.hideSync=false;try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}history.replaceState(null,"",location.pathname+location.search);return}
+  if(h==="#admin")return;
   if(!h.startsWith("#setup="))return;
   try{
     const o=JSON.parse(decodeURIComponent(escape(atob(h.slice(7)))));
-    cfg={owner:o.o||"",repo:o.r||"",path:o.p||"lecturer-data.json",branch:o.b||"",token:o.t||"",hideSync:true};
+    cfg={owner:o.o||"",repo:o.r||"",path:o.p||"lecturer-data.json",branch:o.b||"",token:o.t||"",hideSync:true,pinHash:o.h||""};
     localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
   }catch(e){}
   history.replaceState(null,"",location.pathname+location.search);
@@ -301,17 +341,50 @@ function startSync(){
     const m=$("linkMsg"),out=$("gLinkOut");
     if(!connected()){m.textContent="Connect to GitHub first, then create the link.";return}
     if(location.protocol==="file:"){m.textContent="This page is opened from a file on your device, so a link to it would not work for others. Put the page on GitHub Pages first, open it from its web address, then create the link.";return}
-    const link=location.origin+location.pathname+"#setup="+b64u(JSON.stringify({o:cfg.owner,r:cfg.repo,p:cfg.path,b:cfg.branch,t:cfg.token}));
+    const link=location.origin+location.pathname+"#setup="+b64u(JSON.stringify({o:cfg.owner,r:cfg.repo,p:cfg.path,b:cfg.branch,t:cfg.token,h:cfg.pinHash||""}));
     out.style.display="block";out.value=link;out.select();
     let copied=false;try{navigator.clipboard.writeText(link);copied=true}catch(e){}
     m.style.color="var(--accent)";m.textContent=copied?"Link copied. Send it to your colleagues.":"Copy the link above and send it to your colleagues.";
   };
-  $("gSave").onclick=()=>{
-    cfg={owner:$("gOwner").value.trim(),repo:$("gRepo").value.trim(),path:$("gPath").value.trim()||"lecturer-data.json",branch:$("gBranch").value.trim(),token:$("gToken").value.trim()};
+  $("gSave").onclick=async()=>{
+    const pin=$("gPin").value.trim(),keepPin=cfg.pinHash||"";
+    cfg={owner:$("gOwner").value.trim(),repo:$("gRepo").value.trim(),path:$("gPath").value.trim()||"lecturer-data.json",branch:$("gBranch").value.trim(),token:$("gToken").value.trim(),pinHash:pin?await hashPin(pin):keepPin};
+    $("gPin").value="";
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}
     sync();
   };
   $("gNow").onclick=sync;
+  ["staff","lect","labs"].forEach(id=>{const sec=$(id);if(sec){const d=document.createElement("div");d.className="lockmsg";sec.insertBefore(d,sec.firstChild)}});
+  $("gLock").onclick=()=>{setSet("lock",getSet("lock")==="1"?"":"1");applyLock()};
+  applyLock();
+  $("gVerLoad").onclick=async()=>{
+    const m=$("restoreMsg");m.style.color="var(--mute)";
+    if(!connected()){m.textContent="Connect to GitHub first.";return}
+    m.textContent="Loading…";
+    try{
+      const q="path="+encodeURIComponent(cfg.path)+"&per_page=30"+(cfg.branch?"&sha="+encodeURIComponent(cfg.branch):"");
+      const res=await fetch(apiBase()+"/commits?"+q,{headers:hdr(),cache:"no-store"});
+      if(!res.ok)throw new Error(await errText(res));
+      const list=await res.json();
+      if(!list.length){m.textContent="No earlier versions found yet.";return}
+      $("gVers").innerHTML=list.map(c=>`<option value="${c.sha}">${esc(new Date(c.commit.committer.date).toLocaleString())} - ${esc((c.commit.message||"").split("\n")[0])}</option>`).join("");
+      $("gVers").style.display="block";$("gVerGo").style.display="inline-block";
+      m.textContent=list.length+" versions found, newest first.";
+    }catch(e){m.style.color="var(--warn)";m.textContent=e.message}
+  };
+  $("gVerGo").onclick=async()=>{
+    const m=$("restoreMsg"),ver=$("gVers").value;if(!ver)return;
+    if(!confirm("Replace all current records with the selected earlier version? Everyone's page will follow after its next sync."))return;
+    m.style.color="var(--mute)";m.textContent="Restoring…";
+    try{
+      const res=await fetch(fileUrl()+"?ref="+encodeURIComponent(ver),{headers:hdr(),cache:"no-store"});
+      if(!res.ok)throw new Error(await errText(res));
+      const d=JSON.parse(b64dec((await res.json()).content));
+      restoreFrom(d);render();await sync();
+      m.style.color="var(--accent)";m.textContent="Restored. The earlier version is now the current data.";
+    }catch(e){m.style.color="var(--warn)";m.textContent="Restore failed: "+e.message}
+  };
+  if(location.hash==="#admin")unlockAdmin();
   $("gOff").onclick=()=>{cfg.token="";try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}fillSync();sha=null;setStatus("Disconnected. Data is saved on this device only.")};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
   setInterval(()=>{if(!document.hidden)sync()},60000);
@@ -336,11 +409,13 @@ function listHtml(arr,kind){
   if(!arr.length)return `<div class="empty">Nothing added yet.</div>`;
   return `<table><tbody>${arr.map(x=>`<tr><td>${esc(x.name)}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="rename('${kind}','${x.id}')">Rename</button><button class="del" onclick="remove('${kind}','${x.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`;
 }
-function addName(kind,inp){const v=$(inp).value.trim();if(!v)return;db[kind].push({id:uid(),name:v});$(inp).value="";save();render()}
+function isLocked(){return getSet("lock")==="1"&&!!cfg.hideSync}
+function addName(kind,inp){
+  if(isLocked())return;const v=$(inp).value.trim();if(!v)return;db[kind].push({id:uid(),name:v});$(inp).value="";save();render()}
 $("sAdd").onclick=()=>addName("staff","sName");
 $("sName").addEventListener("keydown",e=>{if(e.key==="Enter")$("sAdd").click()});
-function rename(kind,id){const o=db[kind].find(x=>x.id===id);const v=prompt("New name:",o.name);if(v&&v.trim()){o.name=v.trim();save();render()}}
-function remove(kind,id){
+function rename(kind,id){if(isLocked())return;const o=db[kind].find(x=>x.id===id);const v=prompt("New name:",o.name);if(v&&v.trim()){o.name=v.trim();save();render()}}
+function remove(kind,id){if(isLocked())return;
   const used=kind==="staff"?db.logs.some(l=>l.staff.includes(id))||db.labs.some(l=>(l.lects||[]).includes(id)):db.logs.some(l=>l.lab===id);
   if(!confirm(used?"This name is used in saved records, which will then show '(deleted)'. Delete anyway?":"Delete this entry?"))return;
   db[kind]=db[kind].filter(x=>x.id!==id);save();render();
@@ -348,6 +423,7 @@ function remove(kind,id){
 
 /* labs */
 $("labSave").onclick=()=>{
+  if(isLocked())return;
   const name=$("bName").value.trim();if(!name)return;
   const rec={name,code:$("bCode").value.trim(),max:$("bMax").value,kind:document.querySelector("#bKind input:checked").value,lects:[...document.querySelectorAll("#bLects input:checked")].map(i=>i.value)};
   if(editLab){Object.assign(db.labs.find(x=>x.id===editLab),rec)}else db.labs.push({id:uid(),...rec});
@@ -356,7 +432,7 @@ $("labSave").onclick=()=>{
 function setKind(k){const r=[...document.querySelectorAll("#bKind input")];(r.find(i=>i.value===k)||r[0]).checked=true}
 function resetSubj(){$("bName").value="";$("bCode").value="";$("bMax").value="";setKind("theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=false)}
 $("labCancel").onclick=()=>{editLab=null;resetSubj();render()};
-function editLabFn(id){const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";setKind(l.kind||"theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=(l.lects||[]).includes(i.value));window.scrollTo(0,0)}
+function editLabFn(id){if(isLocked())return;const l=db.labs.find(x=>x.id===id);editLab=id;render();$("bName").value=l.name;$("bCode").value=l.code||"";$("bMax").value=l.max||"";setKind(l.kind||"theory");document.querySelectorAll("#bLects input").forEach(i=>i.checked=(l.lects||[]).includes(i.value));window.scrollTo(0,0)}
 
 /* log */
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -551,7 +627,7 @@ $("impBtn").onclick=()=>$("impFile").click();
 $("impFile").onchange=e=>{
   const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.staff||!d.labs||!d.logs)throw 0;
-    if(!confirm("This replaces all current data. Continue?"))return;db=d;db.del=db.del||{};COLS.forEach(c=>db[c]=db[c]||[]);save();render();$("dataMsg").style.color="var(--accent)";$("dataMsg").textContent="Backup restored."}
+    if(!confirm("This replaces all current data. Continue?"))return;restoreFrom(d);sync();render();$("dataMsg").style.color="var(--accent)";$("dataMsg").textContent="Backup restored."}
     catch{$("dataMsg").style.color="var(--warn)";$("dataMsg").textContent="That file is not a valid backup."}};
   r.readAsText(f);e.target.value="";
 };
@@ -563,7 +639,7 @@ function render(){
   $("labTitle").textContent=editLab?"Edit subject":"Add a subject";
   $("labCancel").style.display=editLab?"":"none";
   $("labList").innerHTML=db.labs.length?`<table><thead><tr><th>Subject</th><th>Type</th><th>Class</th><th>Lecturers</th><th>Max hrs</th><th></th></tr></thead><tbody>${db.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.kind==="lab"?"Lab":l.kind==="theory"?"Theory":"-"}</td><td>${esc(l.code||"")}</td><td>${(l.lects||[]).map(x=>`<span class="tag">${esc(nm(db.staff,x))}</span>`).join("")}</td><td>${esc(l.max||"")}</td><td style="text-align:right;white-space:nowrap"><button class="edit" onclick="editLabFn('${l.id}')">Edit</button><button class="del" onclick="remove('labs','${l.id}')">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No subjects yet. Add them above.</div>`;
-  renderLog();renderReport();
+  renderLog();renderReport();applyLock();
 }
 document.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>setPer(b.dataset.per?b.dataset.per.split(",").map(Number):[]));
 render();
